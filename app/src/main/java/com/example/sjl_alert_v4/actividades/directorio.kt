@@ -1,10 +1,7 @@
 package com.example.sjl_alert_v4.actividades
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.layout.ContentScale
-import com.example.sjl_alert_v4.R
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,10 +15,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.sjl_alert_v4.R
 import com.example.sjl_alert_v4.ui.theme.*
 
 @Preview(showBackground = true, showSystemUi = true)
@@ -54,14 +54,33 @@ fun DirectorioPage(
     onLogout: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {}
 ) {
+    // ── Lista de contactos con textos localizados ─────────────────────────
+    // Al cambiar el idioma, stringResource() retorna automáticamente
+    // el texto correcto según el locale activo.
     val contactos = listOf(
-        Contacto("Serenazgo SJL", "Central de Seguridad Ciudadana", "(01) 388-1212", Icons.Default.Shield, true),
-        Contacto("PNP", "EMERGENCIAS 105", "105", Icons.Default.Policy),
-        Contacto("Bomberos", "EMERGENCIAS 116", "116", Icons.Default.FireTruck)
+        Contacto(
+            nombre      = stringResource(R.string.contacto_serenazgo_nombre),
+            descripcion = stringResource(R.string.contacto_serenazgo_desc),
+            numero      = "(01) 388-1212",
+            icon        = Icons.Default.Shield,
+            isPrincipal = true
+        ),
+        Contacto(
+            nombre      = stringResource(R.string.contacto_pnp_nombre),
+            descripcion = stringResource(R.string.contacto_pnp_desc),
+            numero      = "105",
+            icon        = Icons.Default.Policy
+        ),
+        Contacto(
+            nombre      = stringResource(R.string.contacto_bomberos_nombre),
+            descripcion = stringResource(R.string.contacto_bomberos_desc),
+            numero      = "116",
+            icon        = Icons.Default.FireTruck
+        )
     )
 
-    val backgroundColor = MaterialTheme.colorScheme.background
-    val primaryColor = MaterialTheme.colorScheme.primary
+    val backgroundColor       = MaterialTheme.colorScheme.background
+    val primaryColor          = MaterialTheme.colorScheme.primary
     val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     Scaffold(
@@ -73,9 +92,9 @@ fun DirectorioPage(
         },
         bottomBar = {
             BottomNavigationBar(
-                currentScreen = "directory",
-                onHomeClick = onNavigateToHome,
-                onReportsClick = onNavigateToReports,
+                currentScreen    = "directory",
+                onHomeClick      = onNavigateToHome,
+                onReportsClick   = onNavigateToReports,
                 onDirectoryClick = { }
             )
         },
@@ -90,19 +109,19 @@ fun DirectorioPage(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Directorio de\nEmergencias",
-                fontSize = 32.sp,
+                text       = stringResource(R.string.directorio_titulo),
+                fontSize   = 32.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = primaryColor,
+                color      = primaryColor,
                 lineHeight = 38.sp
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Acceso inmediato a los servicios de auxilio en San Juan de Lurigancho.",
-                fontSize = 16.sp,
-                color = onSurfaceVariantColor,
+                text       = stringResource(R.string.directorio_subtitulo),
+                fontSize   = 16.sp,
+                color      = onSurfaceVariantColor,
                 lineHeight = 22.sp
             )
 
@@ -110,7 +129,7 @@ fun DirectorioPage(
 
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxSize()
+                modifier            = Modifier.fillMaxSize()
             ) {
                 items(contactos) { contacto -> NewContactCard(contacto) }
                 item { Spacer(modifier = Modifier.height(20.dp)) }
@@ -121,48 +140,77 @@ fun DirectorioPage(
 
 @Composable
 fun NewContactCard(contacto: Contacto) {
-    val surfaceColor = MaterialTheme.colorScheme.surface
-    val primaryColor = MaterialTheme.colorScheme.primary
+    val context = LocalContext.current
+
+    val surfaceColor          = MaterialTheme.colorScheme.surface
+    val primaryColor          = MaterialTheme.colorScheme.primary
     val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
+    val surfaceVariantColor   = MaterialTheme.colorScheme.surfaceVariant
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = surfaceColor),
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = surfaceColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(),
+
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top) {
-                Box(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp))
-                    .background(SoftRed.copy(alpha = 0.5f)),
-                    contentAlignment = Alignment.Center) {
-                    Icon(contacto.icon, contentDescription = null,
-                        tint = DeepRed, modifier = Modifier.size(28.dp))
+                verticalAlignment     = Alignment.Top
+            ) {
+                Box(
+                    modifier         = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(SoftRed.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        contacto.icon,
+                        contentDescription = null,
+                        tint               = DeepRed,
+                        modifier           = Modifier.size(28.dp)
+                    )
                 }
                 if (contacto.isPrincipal) {
                     Surface(color = SoftRed.copy(alpha = 0.8f), shape = RoundedCornerShape(12.dp)) {
-                        Text("PRINCIPAL",
+                        Text(
+                            text     = stringResource(R.string.principal),
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                            fontSize = 10.sp, fontWeight = FontWeight.Bold, color = DeepRed)
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color    = DeepRed
+                        )
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            Text(contacto.nombre, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryColor)
+
+            // Nombre y descripción ya vienen localizados desde la lista
+            Text(contacto.nombre,      fontSize = 20.sp, fontWeight = FontWeight.Bold, color = primaryColor)
             Text(contacto.descripcion, fontSize = 14.sp, color = onSurfaceVariantColor)
+
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
-                onClick = { /* TODO: Llamar */ },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
+                onClick = {
+                    // Limpia el número y abre el marcador del celular
+                    val numeroLimpio = contacto.numero
+                        .replace(" ", "")
+                        .replace("(", "")
+                        .replace(")", "")
+                        .replace("-", "")
+                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$numeroLimpio"))
+                    context.startActivity(intent)
+                },
+                modifier       = Modifier.fillMaxWidth(),
+                shape          = RoundedCornerShape(12.dp),
+                colors         = ButtonDefaults.buttonColors(
                     containerColor = if (contacto.isPrincipal) DeepRed else surfaceVariantColor,
-                    contentColor = if (contacto.isPrincipal) Color.White else primaryColor
+                    contentColor   = if (contacto.isPrincipal) Color.White else primaryColor
                 ),
                 contentPadding = PaddingValues(vertical = 12.dp)
             ) {
@@ -170,8 +218,10 @@ fun NewContactCard(contacto: Contacto) {
                     Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        if (contacto.isPrincipal) contacto.numero else "Llamar ${contacto.numero}",
-                        fontWeight = FontWeight.Bold, fontSize = 16.sp
+                        text = if (contacto.isPrincipal) contacto.numero
+                        else stringResource(R.string.llamar, contacto.numero),
+                        fontWeight = FontWeight.Bold,
+                        fontSize   = 16.sp
                     )
                 }
             }

@@ -5,10 +5,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.Density
 import androidx.core.view.WindowCompat
 import com.example.sjl_alert_v4.sharedPrefs.PreferenceManager
 
@@ -55,8 +58,12 @@ fun SJL_Alert_v4Theme(
     val context = LocalContext.current
     val preferenceManager = PreferenceManager(context)
 
-    // Lee la preferencia guardada por el usuario
+    // Lee las preferencias guardadas por el usuario
     val darkTheme = preferenceManager.isDarkMode()
+
+    // fontScale: 16f es el tamaño base (normal = 1.0f)
+    // Ej: 14f → 0.875f (pequeño), 18f → 1.125f (grande), 22f → 1.375f (muy grande)
+    val fontScale = preferenceManager.getFontSize() / 16f
 
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
@@ -70,9 +77,20 @@ fun SJL_Alert_v4Theme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    // ── Aplica fontScale globalmente a TODAS las pantallas ────────────────────
+    // LocalDensity sobreescrito conserva la densidad de pantalla pero ajusta
+    // la escala de fuente según la preferencia del usuario.
+    val currentDensity = LocalDensity.current
+    CompositionLocalProvider(
+        LocalDensity provides Density(
+            density   = currentDensity.density,
+            fontScale = fontScale
+        )
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography  = Typography,
+            content     = content
+        )
+    }
 }

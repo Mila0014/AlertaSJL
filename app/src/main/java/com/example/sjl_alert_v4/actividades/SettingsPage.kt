@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -25,6 +26,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.sjl_alert_v4.R
 import com.example.sjl_alert_v4.modelos.AppDatabase
 import com.example.sjl_alert_v4.sharedPrefs.PreferenceManager
 import com.example.sjl_alert_v4.ui.theme.*
@@ -40,19 +42,28 @@ fun AjustesPrefs(
     val db = remember { AppDatabase.getInstance(context) }
     val scope = rememberCoroutineScope()
 
+    // ── Estado de preferencias ────────────────────────────────────────────────
     var darkMode by remember { mutableStateOf(preferenceManager.isDarkMode()) }
     var emailNotifications by remember { mutableStateOf(preferenceManager.isEmailNotificationEnabled()) }
     var communityAlerts by remember { mutableStateOf(preferenceManager.isCommunityAlertsEnabled()) }
     var locationSharing by remember { mutableStateOf(true) }
 
+    // ── Tamaño de fuente e idioma ─────────────────────────────────────────────
+    var fontSizeActual by remember { mutableStateOf(preferenceManager.getFontSize()) }
+    var idiomaActual by remember { mutableStateOf(preferenceManager.getLanguage()) }
+
+    // ── Datos del usuario en sesión ───────────────────────────────────────────
     val usuarioId = preferenceManager.getSesionUsuarioId()
     val sesionNombre = preferenceManager.getSesionNombre()
     val sesionCorreo = preferenceManager.getSesionCorreo()
 
+    // ── Control de diálogos ───────────────────────────────────────────────────
     var mostrarDialogoTelefono by remember { mutableStateOf(false) }
     var mostrarDialogoCorreo by remember { mutableStateOf(false) }
     var mostrarDialogoContrasena by remember { mutableStateOf(false) }
+    var mostrarDialogoIdioma by remember { mutableStateOf(false) }
 
+    // ── Datos cargados desde la DB ────────────────────────────────────────────
     var telefonoActual by remember { mutableStateOf("") }
     var correoActual by remember { mutableStateOf(sesionCorreo) }
     var edadUsuario by remember { mutableStateOf<Int?>(null) }
@@ -68,7 +79,7 @@ fun AjustesPrefs(
         }
     }
 
-    // ── Colores dinámicos del tema activo ──────────────────────────────────────
+    // ── Colores dinámicos del tema activo ─────────────────────────────────────
     val primaryColor = MaterialTheme.colorScheme.primary
     val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
     val backgroundColor = MaterialTheme.colorScheme.background
@@ -76,19 +87,29 @@ fun AjustesPrefs(
     val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
     val surfaceContainerHighColor = MaterialTheme.colorScheme.surfaceContainerHigh
 
+    // ── Strings capturados antes de coroutines ────────────────────────────────
+    val strTelefonoActualizado = stringResource(R.string.telefono_actualizado)
+    val strCorreoActualizado = stringResource(R.string.correo_actualizado)
+    val strContrasenaActualizada = stringResource(R.string.contrasena_actualizada)
+    val strErrorActualizar = stringResource(R.string.error_actualizar)
+    val strErrorTelefonoDigitos = stringResource(R.string.error_telefono_digitos)
+    val strErrorSoloNumeros = stringResource(R.string.error_solo_numeros)
+    val strErrorCorreoVacio = stringResource(R.string.error_correo_vacio)
+    val strErrorCorreoInvalido = stringResource(R.string.error_correo_invalido)
+
     // ── DIÁLOGO: Editar Teléfono ──────────────────────────────────────────────
     if (mostrarDialogoTelefono) {
         EditarCampoDialog(
-            titulo = "Editar Teléfono",
-            etiqueta = "Nuevo teléfono",
+            titulo = stringResource(R.string.editar_telefono),
+            etiqueta = stringResource(R.string.nuevo_telefono),
             placeholder = "Ej: 987654321",
             valorInicial = telefonoActual,
             keyboardType = KeyboardType.Phone,
             icono = Icons.Default.Phone,
             validar = { valor ->
                 when {
-                    valor.length < 9 -> "El teléfono debe tener 9 dígitos"
-                    !valor.all { it.isDigit() } -> "Solo se permiten números"
+                    valor.length < 9 -> strErrorTelefonoDigitos
+                    !valor.all { it.isDigit() } -> strErrorSoloNumeros
                     else -> null
                 }
             },
@@ -97,9 +118,9 @@ fun AjustesPrefs(
                     try {
                         db.usuarioDao().actualizarTelefono(usuarioId, nuevoTelefono)
                         telefonoActual = nuevoTelefono
-                        Toast.makeText(context, "Teléfono actualizado", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, strTelefonoActualizado, Toast.LENGTH_SHORT).show()
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Error al actualizar", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, strErrorActualizar, Toast.LENGTH_SHORT).show()
                     }
                 }
                 mostrarDialogoTelefono = false
@@ -111,16 +132,16 @@ fun AjustesPrefs(
     // ── DIÁLOGO: Editar Correo ────────────────────────────────────────────────
     if (mostrarDialogoCorreo) {
         EditarCampoDialog(
-            titulo = "Editar Correo",
-            etiqueta = "Nuevo correo electrónico",
+            titulo = stringResource(R.string.editar_correo),
+            etiqueta = stringResource(R.string.nuevo_correo),
             placeholder = "correo@ejemplo.com",
             valorInicial = correoActual,
             keyboardType = KeyboardType.Email,
             icono = Icons.Default.Email,
             validar = { valor ->
                 when {
-                    valor.isBlank() -> "El correo no puede estar vacío"
-                    !valor.contains("@") -> "Ingresa un correo válido"
+                    valor.isBlank() -> strErrorCorreoVacio
+                    !valor.contains("@") -> strErrorCorreoInvalido
                     else -> null
                 }
             },
@@ -130,9 +151,9 @@ fun AjustesPrefs(
                         db.usuarioDao().actualizarCorreo(usuarioId, nuevoCorreo.trim().lowercase())
                         correoActual = nuevoCorreo.trim().lowercase()
                         preferenceManager.guardarSesion(usuarioId, sesionNombre, correoActual)
-                        Toast.makeText(context, "Correo actualizado", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, strCorreoActualizado, Toast.LENGTH_SHORT).show()
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Error al actualizar", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, strErrorActualizar, Toast.LENGTH_SHORT).show()
                     }
                 }
                 mostrarDialogoCorreo = false
@@ -148,12 +169,26 @@ fun AjustesPrefs(
             db = db,
             onDismiss = { mostrarDialogoContrasena = false },
             onExito = {
-                Toast.makeText(context, "Contraseña actualizada", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, strContrasenaActualizada, Toast.LENGTH_SHORT).show()
                 mostrarDialogoContrasena = false
             },
             onError = { msg ->
                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
             }
+        )
+    }
+
+    // ── DIÁLOGO: Seleccionar Idioma ───────────────────────────────────────────
+    if (mostrarDialogoIdioma) {
+        IdiomaDialog(
+            idiomaActual = idiomaActual,
+            onConfirmar = { nuevoIdioma ->
+                idiomaActual = nuevoIdioma
+                preferenceManager.setLanguage(nuevoIdioma)
+                mostrarDialogoIdioma = false
+                onThemeChanged()
+            },
+            onDismiss = { mostrarDialogoIdioma = false }
         )
     }
 
@@ -168,11 +203,15 @@ fun AjustesPrefs(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Atrás", tint = primaryColor)
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        contentDescription = stringResource(R.string.atras),
+                        tint = primaryColor
+                    )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "Configuración",
+                    text = stringResource(R.string.configuracion),
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp,
                     color = primaryColor
@@ -217,14 +256,14 @@ fun AjustesPrefs(
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
                         Text(
-                            text = sesionNombre.ifEmpty { "Usuario" },
+                            text = sesionNombre.ifEmpty { stringResource(R.string.usuario) },
                             color = onPrimaryColor,
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = correoActual.ifEmpty { "Sin correo" },
+                            text = correoActual.ifEmpty { stringResource(R.string.sin_correo) },
                             color = onPrimaryColor.copy(alpha = 0.8f),
                             fontSize = 13.sp
                         )
@@ -235,7 +274,7 @@ fun AjustesPrefs(
                                 color = onPrimaryColor.copy(alpha = 0.2f)
                             ) {
                                 Text(
-                                    text = "Vecino activo",
+                                    text = stringResource(R.string.vecino_activo),
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
                                     color = onPrimaryColor,
                                     fontSize = 11.sp,
@@ -248,7 +287,7 @@ fun AjustesPrefs(
                                     color = onPrimaryColor.copy(alpha = 0.2f)
                                 ) {
                                     Text(
-                                        text = "$edadUsuario años",
+                                        text = "$edadUsuario ${stringResource(R.string.anios)}",
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
                                         color = onPrimaryColor,
                                         fontSize = 11.sp,
@@ -264,34 +303,35 @@ fun AjustesPrefs(
             Spacer(modifier = Modifier.height(20.dp))
 
             // ── SECCIÓN: Mi cuenta ────────────────────────────────────────
-            SettingsSection(title = "Mi cuenta") {
+            SettingsSection(title = stringResource(R.string.mi_cuenta)) {
                 SettingsItem(
                     icon = Icons.Default.Phone,
-                    title = "Teléfono",
-                    subtitle = telefonoActual.ifEmpty { "No configurado" },
+                    title = stringResource(R.string.telefono),
+                    subtitle = telefonoActual.ifEmpty { stringResource(R.string.no_configurado) },
                     onClick = { mostrarDialogoTelefono = true }
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = surfaceContainerHighColor)
                 SettingsItem(
                     icon = Icons.Default.Email,
-                    title = "Correo electrónico",
-                    subtitle = correoActual.ifEmpty { "No configurado" },
+                    title = stringResource(R.string.correo_electronico),
+                    subtitle = correoActual.ifEmpty { stringResource(R.string.no_configurado) },
                     onClick = { mostrarDialogoCorreo = true }
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = surfaceContainerHighColor)
                 SettingsItem(
                     icon = Icons.Default.Lock,
-                    title = "Cambiar contraseña",
+                    title = stringResource(R.string.cambiar_contrasena),
                     subtitle = "••••••••",
                     onClick = { mostrarDialogoContrasena = true }
                 )
             }
 
             // ── SECCIÓN: Preferencias ─────────────────────────────────────
-            SettingsSection(title = "Preferencias de la App") {
+            SettingsSection(title = stringResource(R.string.preferencias_app)) {
+
                 SettingsSwitchItem(
                     icon = Icons.Default.DarkMode,
-                    title = "Modo Oscuro",
+                    title = stringResource(R.string.modo_oscuro),
                     checked = darkMode,
                     onCheckedChange = {
                         darkMode = it
@@ -299,20 +339,90 @@ fun AjustesPrefs(
                         onThemeChanged()
                     }
                 )
+
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = surfaceContainerHighColor)
+
+                // ── Tamaño de fuente con slider ───────────────────────────
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.TextFields,
+                            contentDescription = null,
+                            tint = primaryColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = stringResource(R.string.tamano_fuente),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = primaryColor.copy(alpha = 0.12f)
+                        ) {
+                            Text(
+                                text = when {
+                                    fontSizeActual <= 13f -> stringResource(R.string.pequeno)
+                                    fontSizeActual <= 16f -> stringResource(R.string.normal)
+                                    fontSizeActual <= 19f -> stringResource(R.string.grande)
+                                    else -> stringResource(R.string.muy_grande)
+                                },
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                                fontSize = 12.sp,
+                                color = primaryColor,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Slider(
+                        value = fontSizeActual,
+                        onValueChange = { fontSizeActual = it },
+                        onValueChangeFinished = {
+                            preferenceManager.setFontSize(fontSizeActual)
+                            onThemeChanged()
+                        },
+                        valueRange = 12f..22f,
+                        steps = 3,
+                        colors = SliderDefaults.colors(
+                            thumbColor = primaryColor,
+                            activeTrackColor = primaryColor,
+                            inactiveTrackColor = surfaceContainerHighColor
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("A", fontSize = 11.sp, color = onSurfaceVariantColor)
+                        Text("A", fontSize = 18.sp, color = onSurfaceVariantColor, fontWeight = FontWeight.Medium)
+                    }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = surfaceContainerHighColor)
+
                 SettingsItem(
                     icon = Icons.Default.Language,
-                    title = "Idioma",
-                    subtitle = "Español",
-                    onClick = { }
+                    title = stringResource(R.string.idioma),
+                    subtitle = when (idiomaActual) {
+                        "es" -> "🇵🇪  Español"
+                        "en" -> "🇺🇸  English"
+                        else -> "Español"
+                    },
+                    onClick = { mostrarDialogoIdioma = true }
                 )
             }
 
             // ── SECCIÓN: Notificaciones ───────────────────────────────────
-            SettingsSection(title = "Notificaciones") {
+            SettingsSection(title = stringResource(R.string.notificaciones)) {
                 SettingsSwitchItem(
                     icon = Icons.Default.Notifications,
-                    title = "Notificaciones por Correo",
+                    title = stringResource(R.string.notif_correo),
                     checked = emailNotifications,
                     onCheckedChange = {
                         emailNotifications = it
@@ -322,7 +432,7 @@ fun AjustesPrefs(
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = surfaceContainerHighColor)
                 SettingsSwitchItem(
                     icon = Icons.Default.Security,
-                    title = "Alertas Comunitarias",
+                    title = stringResource(R.string.alertas_comunitarias),
                     checked = communityAlerts,
                     onCheckedChange = {
                         communityAlerts = it
@@ -332,33 +442,33 @@ fun AjustesPrefs(
             }
 
             // ── SECCIÓN: Seguridad y Privacidad ───────────────────────────
-            SettingsSection(title = "Seguridad y Privacidad") {
+            SettingsSection(title = stringResource(R.string.seguridad_privacidad)) {
                 SettingsSwitchItem(
                     icon = Icons.Default.LocationOn,
-                    title = "Compartir Ubicación en Emergencias",
+                    title = stringResource(R.string.compartir_ubicacion),
                     checked = locationSharing,
                     onCheckedChange = { locationSharing = it }
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = surfaceContainerHighColor)
                 SettingsItem(
                     icon = Icons.Default.History,
-                    title = "Historial de Reportes",
-                    subtitle = "Ver mis incidencias pasadas",
+                    title = stringResource(R.string.historial_reportes),
+                    subtitle = stringResource(R.string.ver_incidencias),
                     onClick = { }
                 )
             }
 
             // ── SECCIÓN: Ayuda ────────────────────────────────────────────
-            SettingsSection(title = "Ayuda y Soporte") {
+            SettingsSection(title = stringResource(R.string.ayuda_soporte)) {
                 SettingsItem(
                     icon = Icons.Default.Info,
-                    title = "Términos y Condiciones",
+                    title = stringResource(R.string.terminos),
                     onClick = { }
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = surfaceContainerHighColor)
                 SettingsItem(
                     icon = Icons.Default.PrivacyTip,
-                    title = "Política de Privacidad",
+                    title = stringResource(R.string.privacidad),
                     onClick = { }
                 )
             }
@@ -366,13 +476,82 @@ fun AjustesPrefs(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Versión 1.0.0",
+                text = stringResource(R.string.version_app),
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 color = onSurfaceVariantColor,
                 fontSize = 12.sp
             )
 
             Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+// ── DIÁLOGO: Seleccionar Idioma ───────────────────────────────────────────────
+@Composable
+private fun IdiomaDialog(
+    idiomaActual: String,
+    onConfirmar: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+
+    val idiomas = listOf(
+        "es" to "🇵🇪  Español",
+        "en" to "🇺🇸  English"
+    )
+    var seleccionado by remember { mutableStateOf(idiomaActual) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = surfaceColor),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Language, contentDescription = null, tint = primaryColor, modifier = Modifier.size(22.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.seleccionar_idioma),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = primaryColor
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                idiomas.forEach { (codigo, etiqueta) ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = seleccionado == codigo,
+                            onClick = { seleccionado = codigo },
+                            colors = RadioButtonDefaults.colors(selectedColor = primaryColor)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = etiqueta, fontSize = 16.sp, color = onSurfaceColor)
+                    }
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
+                        Text(stringResource(R.string.cancelar), color = primaryColor)
+                    }
+                    Button(
+                        onClick = { onConfirmar(seleccionado) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
+                    ) {
+                        Text(stringResource(R.string.aplicar), color = onPrimaryColor)
+                    }
+                }
+            }
         }
     }
 }
@@ -409,28 +588,17 @@ private fun EditarCampoDialog(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(icono, contentDescription = null, tint = primaryColor, modifier = Modifier.size(22.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = titulo,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        color = primaryColor
-                    )
+                    Text(text = titulo, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = primaryColor)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-
                 OutlinedTextField(
                     value = valor,
-                    onValueChange = {
-                        valor = it
-                        error = null
-                    },
+                    onValueChange = { valor = it; error = null },
                     label = { Text(etiqueta) },
                     placeholder = { Text(placeholder, color = outlineColor) },
                     isError = error != null,
                     supportingText = {
-                        if (error != null) {
-                            Text(text = error!!, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-                        }
+                        if (error != null) Text(text = error!!, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                     },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
@@ -442,34 +610,21 @@ private fun EditarCampoDialog(
                         focusedLabelColor = primaryColor
                     )
                 )
-
                 Spacer(modifier = Modifier.height(20.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Cancelar", color = primaryColor)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
+                        Text(stringResource(R.string.cancelar), color = primaryColor)
                     }
                     Button(
                         onClick = {
                             val mensajeError = validar(valor)
-                            if (mensajeError != null) {
-                                error = mensajeError
-                            } else {
-                                onConfirmar(valor)
-                            }
+                            if (mensajeError != null) error = mensajeError else onConfirmar(valor)
                         },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
                     ) {
-                        Text("Guardar", color = onPrimaryColor)
+                        Text(stringResource(R.string.guardar), color = onPrimaryColor)
                     }
                 }
             }
@@ -502,6 +657,13 @@ private fun CambiarContrasenaDialog(
     val surfaceContainerHighColor = MaterialTheme.colorScheme.surfaceContainerHigh
     val outlineColor = MaterialTheme.colorScheme.outline
 
+    // Capturar strings antes de coroutines
+    val strError1 = stringResource(R.string.error_contrasena_actual)
+    val strError2 = stringResource(R.string.error_contrasena_min)
+    val strError3 = stringResource(R.string.error_contrasena_no_coinciden)
+    val strError4 = stringResource(R.string.error_contrasena_igual)
+    val strError5 = stringResource(R.string.error_contrasena_incorrecta)
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(20.dp),
@@ -513,10 +675,8 @@ private fun CambiarContrasenaDialog(
                     Icon(Icons.Default.Lock, contentDescription = null, tint = primaryColor, modifier = Modifier.size(22.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Cambiar Contraseña",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        color = primaryColor
+                        text = stringResource(R.string.cambiar_contrasena_titulo),
+                        fontWeight = FontWeight.Bold, fontSize = 18.sp, color = primaryColor
                     )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -524,80 +684,53 @@ private fun CambiarContrasenaDialog(
                 OutlinedTextField(
                     value = contrasenaActual,
                     onValueChange = { contrasenaActual = it; error = null },
-                    label = { Text("Contraseña actual") },
+                    label = { Text(stringResource(R.string.contrasena_actual)) },
                     singleLine = true,
                     visualTransformation = if (verActual) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = { verActual = !verActual }) {
-                            Icon(
-                                imageVector = if (verActual) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = null,
-                                tint = outlineColor
-                            )
+                            Icon(if (verActual) Icons.Default.VisibilityOff else Icons.Default.Visibility, null, tint = outlineColor)
                         }
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = primaryColor,
-                        unfocusedBorderColor = surfaceContainerHighColor,
-                        focusedLabelColor = primaryColor
-                    )
+                    shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = primaryColor, unfocusedBorderColor = surfaceContainerHighColor, focusedLabelColor = primaryColor)
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
                 OutlinedTextField(
                     value = nuevaContrasena,
                     onValueChange = { nuevaContrasena = it; error = null },
-                    label = { Text("Nueva contraseña") },
-                    placeholder = { Text("Mínimo 6 caracteres", color = outlineColor) },
+                    label = { Text(stringResource(R.string.nueva_contrasena)) },
+                    placeholder = { Text(stringResource(R.string.min_6_caracteres), color = outlineColor) },
                     singleLine = true,
                     visualTransformation = if (verNueva) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = { verNueva = !verNueva }) {
-                            Icon(
-                                imageVector = if (verNueva) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = null,
-                                tint = outlineColor
-                            )
+                            Icon(if (verNueva) Icons.Default.VisibilityOff else Icons.Default.Visibility, null, tint = outlineColor)
                         }
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = primaryColor,
-                        unfocusedBorderColor = surfaceContainerHighColor,
-                        focusedLabelColor = primaryColor
-                    )
+                    shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = primaryColor, unfocusedBorderColor = surfaceContainerHighColor, focusedLabelColor = primaryColor)
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
                 OutlinedTextField(
                     value = confirmarContrasena,
                     onValueChange = { confirmarContrasena = it; error = null },
-                    label = { Text("Confirmar nueva contraseña") },
+                    label = { Text(stringResource(R.string.confirmar_contrasena)) },
                     singleLine = true,
                     isError = confirmarContrasena.isNotEmpty() && nuevaContrasena != confirmarContrasena,
                     visualTransformation = if (verConfirmar) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = { verConfirmar = !verConfirmar }) {
-                            Icon(
-                                imageVector = if (verConfirmar) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = null,
-                                tint = outlineColor
-                            )
+                            Icon(if (verConfirmar) Icons.Default.VisibilityOff else Icons.Default.Visibility, null, tint = outlineColor)
                         }
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = primaryColor,
-                        unfocusedBorderColor = surfaceContainerHighColor,
-                        focusedLabelColor = primaryColor
-                    )
+                    shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = primaryColor, unfocusedBorderColor = surfaceContainerHighColor, focusedLabelColor = primaryColor)
                 )
 
                 if (error != null) {
@@ -607,25 +740,17 @@ private fun CambiarContrasenaDialog(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        enabled = !isLoading
-                    ) {
-                        Text("Cancelar", color = primaryColor)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp), enabled = !isLoading) {
+                        Text(stringResource(R.string.cancelar), color = primaryColor)
                     }
                     Button(
                         onClick = {
                             error = when {
-                                contrasenaActual.isBlank() -> "Ingresa tu contraseña actual"
-                                nuevaContrasena.length < 6 -> "La nueva contraseña debe tener al menos 6 caracteres"
-                                nuevaContrasena != confirmarContrasena -> "Las contraseñas no coinciden"
-                                nuevaContrasena == contrasenaActual -> "La nueva contraseña debe ser diferente"
+                                contrasenaActual.isBlank() -> strError1
+                                nuevaContrasena.length < 6 -> strError2
+                                nuevaContrasena != confirmarContrasena -> strError3
+                                nuevaContrasena == contrasenaActual -> strError4
                                 else -> null
                             }
                             if (error == null) {
@@ -635,7 +760,7 @@ private fun CambiarContrasenaDialog(
                                         val usuario = db.usuarioDao().buscarPorId(usuarioId)
                                         val hashActual = hashSHA256(contrasenaActual)
                                         if (usuario == null || usuario.contrasena != hashActual) {
-                                            error = "La contraseña actual es incorrecta"
+                                            error = strError5
                                             isLoading = false
                                             return@launch
                                         }
@@ -644,21 +769,17 @@ private fun CambiarContrasenaDialog(
                                         onExito()
                                     } catch (e: Exception) {
                                         isLoading = false
-                                        onError("Error al actualizar: ${e.message}")
+                                        onError("Error: ${e.message}")
                                     }
                                 }
                             }
                         },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
                         enabled = !isLoading
                     ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = onPrimaryColor, strokeWidth = 2.dp)
-                        } else {
-                            Text("Guardar", color = onPrimaryColor)
-                        }
+                        if (isLoading) CircularProgressIndicator(modifier = Modifier.size(18.dp), color = onPrimaryColor, strokeWidth = 2.dp)
+                        else Text(stringResource(R.string.guardar), color = onPrimaryColor)
                     }
                 }
             }
@@ -672,51 +793,26 @@ private fun CambiarContrasenaDialog(
 fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val surfaceColor = MaterialTheme.colorScheme.surface
-
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Text(
-            text = title,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = primaryColor,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
-        )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = surfaceColor),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-        ) {
+        Text(text = title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = primaryColor, modifier = Modifier.padding(start = 8.dp, bottom = 8.dp))
+        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = surfaceColor), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
             Column { content() }
         }
     }
 }
 
 @Composable
-fun SettingsItem(
-    icon: ImageVector,
-    title: String,
-    subtitle: String? = null,
-    onClick: () -> Unit
-) {
+fun SettingsItem(icon: ImageVector, title: String, subtitle: String? = null, onClick: () -> Unit) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
     val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
-
     Surface(onClick = onClick, color = Color.Transparent) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, contentDescription = null, tint = primaryColor, modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = onSurfaceColor)
-                if (subtitle != null) {
-                    Text(text = subtitle, fontSize = 14.sp, color = onSurfaceVariantColor)
-                }
+                if (subtitle != null) Text(text = subtitle, fontSize = 14.sp, color = onSurfaceVariantColor)
             }
             Icon(Icons.Default.ChevronRight, contentDescription = null, tint = onSurfaceVariantColor, modifier = Modifier.size(20.dp))
         }
@@ -724,35 +820,18 @@ fun SettingsItem(
 }
 
 @Composable
-fun SettingsSwitchItem(
-    icon: ImageVector,
-    title: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
+fun SettingsSwitchItem(icon: ImageVector, title: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
     val surfaceContainerHighColor = MaterialTheme.colorScheme.surfaceContainerHigh
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+    Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, contentDescription = null, tint = primaryColor, modifier = Modifier.size(24.dp))
         Spacer(modifier = Modifier.width(16.dp))
         Text(text = title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = onSurfaceColor, modifier = Modifier.weight(1f))
         Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = onPrimaryColor,
-                checkedTrackColor = primaryColor,
-                uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = surfaceContainerHighColor
-            )
+            checked = checked, onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(checkedThumbColor = onPrimaryColor, checkedTrackColor = primaryColor, uncheckedThumbColor = Color.White, uncheckedTrackColor = surfaceContainerHighColor)
         )
     }
 }

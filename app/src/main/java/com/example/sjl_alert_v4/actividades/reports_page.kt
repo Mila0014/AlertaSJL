@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -46,14 +47,10 @@ import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
 import java.io.File
 import java.util.Locale
 import java.util.UUID
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Modelo UI para las tarjetas de tipo de incidencia
-// ─────────────────────────────────────────────────────────────────────────────
 private data class TipoIncidencia(
     val id: String,
     val titulo: String,
@@ -62,9 +59,6 @@ private data class TipoIncidencia(
     val iconoColor: Color
 )
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Preview
-// ─────────────────────────────────────────────────────────────────────────────
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun ReportsPreview() {
@@ -78,9 +72,6 @@ fun ReportsPreview() {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ReportsPage principal
-// ─────────────────────────────────────────────────────────────────────────────
 @Composable
 fun ReportsPage(
     onLogout: () -> Unit,
@@ -96,27 +87,31 @@ fun ReportsPage(
     val primaryColor          = MaterialTheme.colorScheme.primary
     val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
 
-    // ── Tipos de incidencia ────────────────────────────────────────────────
+    // ── Strings capturados para usar en lambdas/coroutines ────────────────
+    val strAlertaEnviada     = stringResource(R.string.alerta_enviada)
+    val strErrorGuardar      = stringResource(R.string.error_guardar)
+    val strObteniendoUbic    = stringResource(R.string.obteniendo_ubicacion)
+    val strUbicacionActual   = "Ubicación actual"
+    val strPermisoDenegado   = "Permiso de ubicación no concedido"
+
+    // ── Tipos de incidencia (localizados) ─────────────────────────────────
     val tipos = listOf(
-        TipoIncidencia("ruidos",    "Ruidos molestos",          Icons.Default.VolumeUp,  SoftPurple, DeepPurple),
-        TipoIncidencia("libadores", "Libadores en vía pública", Icons.Default.LocalBar,  SoftYellow, DeepYellow),
-        TipoIncidencia("robo",      "Alerta de robo",           Icons.Default.Warning,   SoftRed,    DeepRed),
-        TipoIncidencia("siniestro", "Siniestro",                Icons.Default.Whatshot,  SoftRed,    DeepRed),
-        TipoIncidencia("otro",      "Otro (especificar)",       Icons.Default.Edit,
+        TipoIncidencia("ruidos",    stringResource(R.string.ruidos_molestos), Icons.Default.VolumeUp,  SoftPurple, DeepPurple),
+        TipoIncidencia("libadores", stringResource(R.string.libadores),       Icons.Default.LocalBar,  SoftYellow, DeepYellow),
+        TipoIncidencia("robo",      stringResource(R.string.alerta_robo),     Icons.Default.Warning,   SoftRed,    DeepRed),
+        TipoIncidencia("siniestro", stringResource(R.string.siniestro),       Icons.Default.Whatshot,  SoftRed,    DeepRed),
+        TipoIncidencia("otro",      stringResource(R.string.otro),            Icons.Default.Edit,
             Color(0xFFE8F5E9), Color(0xFF2E7D32))
     )
 
     // ── Estado del formulario ──────────────────────────────────────────────
     var tipoSeleccionadoId  by remember { mutableStateOf<String?>(null) }
     var tipoPersonalizado   by remember { mutableStateOf("") }
-
-    var ubicacion           by remember { mutableStateOf("Obteniendo ubicación...") }
+    var ubicacion           by remember { mutableStateOf(strObteniendoUbic) }
     var editandoUbicacion   by remember { mutableStateOf(false) }
     var ubicacionTemporal   by remember { mutableStateOf("") }
-
     var urisSeleccionadas   by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var comentario          by remember { mutableStateOf("") }
-
     var cargando            by remember { mutableStateOf(false) }
     var mostrarConfirmacion by remember { mutableStateOf(false) }
 
@@ -124,26 +119,17 @@ fun ReportsPage(
     var geoPoint by remember { mutableStateOf<GeoPoint?>(null) }
     var mapView  by remember { mutableStateOf<MapView?>(null) }
 
-    // ── GALERÍA: abre la galería del celular ───────────────────────────────
+    // ── Launchers ──────────────────────────────────────────────────────────
     val galeriaLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetMultipleContents()
     ) { uris -> urisSeleccionadas = urisSeleccionadas + uris }
 
-    // ── CÁMARA: uri temporal donde se guardará la foto tomada ──────────────
     var fotoUri by remember { mutableStateOf<Uri?>(null) }
-
-    // ── CÁMARA: abre la cámara del celular ────────────────────────────────
     val camaraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
-    ) { exito ->
-        if (exito) {
-            fotoUri?.let { uri ->
-                urisSeleccionadas = urisSeleccionadas + uri
-            }
-        }
-    }
+    ) { exito -> if (exito) fotoUri?.let { uri -> urisSeleccionadas = urisSeleccionadas + uri } }
 
-    // ── Obtener ubicación GPS real al abrir la pantalla ────────────────────
+    // ── Obtener ubicación GPS ──────────────────────────────────────────────
     LaunchedEffect(Unit) {
         try {
             val fusedClient = LocationServices.getFusedLocationProviderClient(context)
@@ -152,13 +138,11 @@ fun ReportsPage(
                     val punto = GeoPoint(loc.latitude, loc.longitude)
                     geoPoint = punto
                     mapView?.controller?.animateTo(punto)
-
-                    // Convertir coordenadas a dirección legible
                     try {
                         val geocoder = Geocoder(context, Locale("es", "PE"))
                         val dirs = geocoder.getFromLocation(loc.latitude, loc.longitude, 1)
                         if (!dirs.isNullOrEmpty()) {
-                            ubicacion = dirs[0].getAddressLine(0) ?: "Ubicación actual"
+                            ubicacion = dirs[0].getAddressLine(0) ?: strUbicacionActual
                         }
                     } catch (e: Exception) {
                         ubicacion = "Lat: %.5f, Lng: %.5f".format(loc.latitude, loc.longitude)
@@ -166,11 +150,10 @@ fun ReportsPage(
                 }
             }
         } catch (e: SecurityException) {
-            ubicacion = "Permiso de ubicación no concedido"
+            ubicacion = strPermisoDenegado
         }
     }
 
-    // Etiqueta final del tipo seleccionado
     val etiquetaTipo by remember(tipoSeleccionadoId, tipoPersonalizado) {
         derivedStateOf {
             if (tipoSeleccionadoId == "otro") tipoPersonalizado.trim()
@@ -184,7 +167,6 @@ fun ReportsPage(
             cargando = true
             try {
                 val usuarioId = prefManager.getSesionUsuarioId()
-
                 val incidencia = IncidenciaEntity(
                     id          = UUID.randomUUID().toString(),
                     tipo        = etiquetaTipo,
@@ -197,16 +179,13 @@ fun ReportsPage(
                     estado      = "PENDIENTE",
                     usuarioId   = usuarioId
                 )
-
                 db.incidenciaDao().insertar(incidencia)
-
-                Toast.makeText(context, "¡Alerta enviada exitosamente!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, strAlertaEnviada, Toast.LENGTH_SHORT).show()
                 cargando = false
                 onNavigateToMisReportes()
-
             } catch (e: Exception) {
                 cargando = false
-                Toast.makeText(context, "Error al guardar: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, strErrorGuardar.format(e.message), Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -224,7 +203,6 @@ fun ReportsPage(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -235,16 +213,20 @@ fun ReportsPage(
             Spacer(modifier = Modifier.height(20.dp))
 
             // ── Título ─────────────────────────────────────────────────────
-            Text("Reportar Incidencia",
-                fontSize = 28.sp, fontWeight = FontWeight.Bold, color = primaryColor)
-            Text("Tu seguridad es nuestra prioridad.\nSelecciona el tipo de evento.",
+            Text(
+                text = stringResource(R.string.reportar_incidencia),
+                fontSize = 28.sp, fontWeight = FontWeight.Bold, color = primaryColor
+            )
+            Text(
+                text = stringResource(R.string.reportar_subtitulo),
                 fontSize = 16.sp, color = onSurfaceVariantColor, lineHeight = 22.sp,
-                modifier = Modifier.padding(vertical = 8.dp))
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
             // ── 1. Tipo de Incidencia ──────────────────────────────────────
-            SeccionTitulo("Tipo de Incidencia")
+            SeccionTitulo(stringResource(R.string.tipo_incidencia))
             Spacer(modifier = Modifier.height(12.dp))
 
             tipos.chunked(2).forEach { fila ->
@@ -270,14 +252,12 @@ fun ReportsPage(
                 OutlinedTextField(
                     value         = tipoPersonalizado,
                     onValueChange = { tipoPersonalizado = it },
-                    label         = { Text("Describe el tipo de incidencia") },
-                    placeholder   = { Text("Ej: Pelea en la calle, perros sueltos...") },
-                    modifier      = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                    shape      = RoundedCornerShape(12.dp),
-                    singleLine = true,
-                    leadingIcon = {
+                    label         = { Text(stringResource(R.string.describe_tipo)) },
+                    placeholder   = { Text(stringResource(R.string.describe_tipo_placeholder)) },
+                    modifier      = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                    shape         = RoundedCornerShape(12.dp),
+                    singleLine    = true,
+                    leadingIcon   = {
                         Icon(Icons.Default.Edit, contentDescription = null, tint = primaryColor)
                     }
                 )
@@ -286,18 +266,15 @@ fun ReportsPage(
             Spacer(modifier = Modifier.height(8.dp))
 
             // ── 2. Ubicación ───────────────────────────────────────────────
-            SeccionTitulo("Tu Ubicación Actual")
+            SeccionTitulo(stringResource(R.string.ubicacion_actual))
             Spacer(modifier = Modifier.height(12.dp))
 
-            // ── MAPA OSMDroid con punto pulsante ───────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
                     .clip(RoundedCornerShape(16.dp))
             ) {
-                // Mapa real con OpenStreetMap (gratis, sin API Key)
-                // Mapa real con OpenStreetMap (gratis, sin API Key)
                 AndroidView(
                     modifier = Modifier.fillMaxSize(),
                     factory  = { ctx ->
@@ -316,7 +293,6 @@ fun ReportsPage(
                     update = { map ->
                         mapView = map
                         geoPoint?.let { punto ->
-                            // Sin marcador de OSMDroid — el punto pulsante lo dibuja Compose encima
                             map.overlays.clear()
                             map.controller.setZoom(17.5)
                             map.controller.setCenter(punto)
@@ -325,62 +301,38 @@ fun ReportsPage(
                     }
                 )
 
-                // Punto rojo pulsante animado encima del mapa
+                // Punto rojo pulsante animado
                 val infiniteTransition = rememberInfiniteTransition(label = "pulse")
                 val escala by infiniteTransition.animateFloat(
-                    initialValue  = 1f,
-                    targetValue   = 1.8f,
+                    initialValue  = 1f, targetValue = 1.8f,
                     animationSpec = infiniteRepeatable(
                         animation  = tween(900, easing = FastOutSlowInEasing),
                         repeatMode = RepeatMode.Reverse
-                    ),
-                    label = "escala"
+                    ), label = "escala"
                 )
                 val alpha by infiniteTransition.animateFloat(
-                    initialValue  = 0.5f,
-                    targetValue   = 0f,
+                    initialValue  = 0.5f, targetValue = 0f,
                     animationSpec = infiniteRepeatable(
                         animation  = tween(900),
                         repeatMode = RepeatMode.Reverse
-                    ),
-                    label = "alpha"
+                    ), label = "alpha"
                 )
 
-                Box(
-                    modifier         = Modifier.align(Alignment.Center),
-                    contentAlignment = Alignment.Center
-                ) {
-                    // Círculo exterior pulsante
-                    Box(
-                        modifier = Modifier
-                            .size((28 * escala).dp)
-                            .clip(CircleShape)
-                            .background(DeepRed.copy(alpha = alpha))
-                    )
-                    // Punto central fijo
-                    Box(
-                        modifier = Modifier
-                            .size(14.dp)
-                            .clip(CircleShape)
-                            .background(DeepRed)
-                            .border(2.dp, Color.White, CircleShape)
-                    )
+                Box(modifier = Modifier.align(Alignment.Center), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.size((28 * escala).dp).clip(CircleShape).background(DeepRed.copy(alpha = alpha)))
+                    Box(modifier = Modifier.size(14.dp).clip(CircleShape).background(DeepRed).border(2.dp, Color.White, CircleShape))
                 }
 
-                // Etiqueta "EN TIEMPO REAL"
                 Text(
-                    "EN TIEMPO REAL",
+                    text = stringResource(R.string.en_tiempo_real),
                     modifier   = Modifier.align(Alignment.TopEnd).padding(12.dp),
                     fontSize   = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color      = primaryColor
                 )
 
-                // Chip con la dirección en la parte inferior del mapa
                 Surface(
-                    modifier        = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 10.dp),
+                    modifier        = Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp),
                     shape           = RoundedCornerShape(20.dp),
                     color           = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
                     shadowElevation = 4.dp
@@ -392,12 +344,8 @@ fun ReportsPage(
                         Icon(Icons.Default.MyLocation, contentDescription = null,
                             modifier = Modifier.size(14.dp), tint = onSurfaceVariantColor)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text     = ubicacion,
-                            fontSize = 11.sp,
-                            color    = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1
-                        )
+                        Text(text = ubicacion, fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
                     }
                 }
             }
@@ -410,42 +358,32 @@ fun ReportsPage(
                 shape    = RoundedCornerShape(12.dp),
                 colors   = ButtonDefaults.outlinedButtonColors(contentColor = primaryColor)
             ) {
-                Icon(Icons.Default.EditLocation, contentDescription = null,
-                    modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.EditLocation, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Modificar ubicación manualmente")
+                Text(stringResource(R.string.modificar_ubicacion))
             }
 
             Spacer(modifier = Modifier.height(28.dp))
 
             // ── 3. Adjuntar Evidencia ──────────────────────────────────────
-            SeccionTitulo("Adjuntar Evidencia")
+            SeccionTitulo(stringResource(R.string.adjuntar_evidencia))
             Spacer(modifier = Modifier.height(12.dp))
 
             Row(modifier = Modifier.fillMaxWidth()) {
-
-                // GALERÍA: abre la galería del celular
                 BotonEvidencia(
                     icono    = Icons.Default.Upload,
-                    etiqueta = "Subir Foto/Video",
+                    etiqueta = stringResource(R.string.subir_foto_video),
                     modifier = Modifier.weight(1f),
                     onClick  = { galeriaLauncher.launch("image/*") }
                 )
-
                 Spacer(modifier = Modifier.width(16.dp))
-
-                // CÁMARA: abre la cámara del celular
                 BotonEvidencia(
                     icono    = Icons.Default.CameraAlt,
-                    etiqueta = "Tomar Foto",
+                    etiqueta = stringResource(R.string.tomar_foto),
                     modifier = Modifier.weight(1f),
                     onClick  = {
                         val archivo = File(context.cacheDir, "foto_${System.currentTimeMillis()}.jpg")
-                        val uri = FileProvider.getUriForFile(
-                            context,
-                            "${context.packageName}.fileprovider",
-                            archivo
-                        )
+                        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", archivo)
                         fotoUri = uri
                         camaraLauncher.launch(uri)
                     }
@@ -460,12 +398,13 @@ fun ReportsPage(
                     Icon(Icons.Default.CheckCircle, contentDescription = null,
                         tint = Color(0xFF2E7D32), modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("${urisSeleccionadas.size} archivo(s) adjunto(s)",
-                        fontSize = 14.sp, color = Color(0xFF2E7D32),
-                        fontWeight = FontWeight.Medium)
+                    Text(
+                        text = stringResource(R.string.archivos_adjuntos, urisSeleccionadas.size),
+                        fontSize = 14.sp, color = Color(0xFF2E7D32), fontWeight = FontWeight.Medium
+                    )
                     Spacer(modifier = Modifier.weight(1f))
                     TextButton(onClick = { urisSeleccionadas = emptyList() }) {
-                        Text("Quitar todo", color = DeepRed, fontSize = 13.sp)
+                        Text(stringResource(R.string.quitar_todo), color = DeepRed, fontSize = 13.sp)
                     }
                 }
             }
@@ -473,18 +412,16 @@ fun ReportsPage(
             Spacer(modifier = Modifier.height(28.dp))
 
             // ── 4. Comentario ──────────────────────────────────────────────
-            SeccionTitulo("Comentario adicional")
+            SeccionTitulo(stringResource(R.string.comentario_adicional))
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(
                 value         = comentario,
                 onValueChange = { comentario = it },
-                placeholder   = { Text("Describe a qué se debe el reporte...") },
-                modifier      = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                shape    = RoundedCornerShape(12.dp),
-                maxLines = 5
+                placeholder   = { Text(stringResource(R.string.comentario_placeholder)) },
+                modifier      = Modifier.fillMaxWidth().height(120.dp),
+                shape         = RoundedCornerShape(12.dp),
+                maxLines      = 5
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -496,36 +433,27 @@ fun ReportsPage(
 
             Button(
                 onClick  = { mostrarConfirmacion = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape   = RoundedCornerShape(16.dp),
-                colors  = ButtonDefaults.buttonColors(containerColor = DeepRed),
-                enabled = puedeEnviar
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape    = RoundedCornerShape(16.dp),
+                colors   = ButtonDefaults.buttonColors(containerColor = DeepRed),
+                enabled  = puedeEnviar
             ) {
                 if (cargando) {
-                    CircularProgressIndicator(
-                        modifier    = Modifier.size(22.dp),
-                        color       = Color.White,
-                        strokeWidth = 2.dp
-                    )
+                    CircularProgressIndicator(modifier = Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
                 } else {
                     Icon(Icons.Default.Campaign, contentDescription = null)
                     Spacer(modifier = Modifier.width(10.dp))
-                    Text("Enviar Alerta", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.enviar_alerta), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
             Text(
-                "Mantén presionado para confirmar. Los servicios\n" +
-                        "de emergencia locales serán notificados de inmediato.",
-                fontSize   = 12.sp,
-                color      = onSurfaceVariantColor,
+                text      = stringResource(R.string.enviar_alerta_aviso),
+                fontSize  = 12.sp,
+                color     = onSurfaceVariantColor,
                 lineHeight = 18.sp,
-                textAlign  = TextAlign.Center,
-                modifier   = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp, bottom = 24.dp)
+                textAlign = TextAlign.Center,
+                modifier  = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 24.dp)
             )
         }
     }
@@ -534,17 +462,16 @@ fun ReportsPage(
     if (editandoUbicacion) {
         AlertDialog(
             onDismissRequest = { editandoUbicacion = false },
-            title = { Text("Modificar Ubicación", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.modificar_ubicacion_titulo), fontWeight = FontWeight.Bold) },
             text = {
                 OutlinedTextField(
                     value         = ubicacionTemporal,
                     onValueChange = { ubicacionTemporal = it },
-                    label         = { Text("Dirección") },
+                    label         = { Text(stringResource(R.string.direccion)) },
                     modifier      = Modifier.fillMaxWidth(),
                     shape         = RoundedCornerShape(12.dp),
                     leadingIcon   = {
-                        Icon(Icons.Default.EditLocation, contentDescription = null,
-                            tint = primaryColor)
+                        Icon(Icons.Default.EditLocation, contentDescription = null, tint = primaryColor)
                     }
                 )
             },
@@ -552,10 +479,12 @@ fun ReportsPage(
                 Button(
                     onClick = { ubicacion = ubicacionTemporal; editandoUbicacion = false },
                     colors  = ButtonDefaults.buttonColors(containerColor = primaryColor)
-                ) { Text("Confirmar") }
+                ) { Text(stringResource(R.string.confirmar)) }
             },
             dismissButton = {
-                TextButton(onClick = { editandoUbicacion = false }) { Text("Cancelar") }
+                TextButton(onClick = { editandoUbicacion = false }) {
+                    Text(stringResource(R.string.cancelar))
+                }
             }
         )
     }
@@ -565,74 +494,64 @@ fun ReportsPage(
         AlertDialog(
             onDismissRequest = { mostrarConfirmacion = false },
             icon  = { Icon(Icons.Default.Campaign, tint = DeepRed, contentDescription = null) },
-            title = { Text("¿Enviar alerta?", fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.enviar_alerta_pregunta), fontWeight = FontWeight.Bold) },
             text  = {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FilaConfirmacion("Tipo",       etiquetaTipo)
-                    FilaConfirmacion("Ubicación",  ubicacion)
-                    FilaConfirmacion("Archivos",   "${urisSeleccionadas.size} adjunto(s)")
+                    FilaConfirmacion(stringResource(R.string.tipo_label),      etiquetaTipo)
+                    FilaConfirmacion(stringResource(R.string.ubicacion_label), ubicacion)
+                    FilaConfirmacion(stringResource(R.string.archivos_label),
+                        stringResource(R.string.archivos_adjuntos, urisSeleccionadas.size))
                     if (comentario.isNotBlank())
-                        FilaConfirmacion("Comentario", comentario)
+                        FilaConfirmacion(stringResource(R.string.comentario_label), comentario)
                 }
             },
             confirmButton = {
                 Button(
                     onClick = { mostrarConfirmacion = false; guardarReporte() },
                     colors  = ButtonDefaults.buttonColors(containerColor = DeepRed)
-                ) { Text("Confirmar y Enviar") }
+                ) { Text(stringResource(R.string.confirmar_enviar)) }
             },
             dismissButton = {
-                TextButton(onClick = { mostrarConfirmacion = false }) { Text("Cancelar") }
+                TextButton(onClick = { mostrarConfirmacion = false }) {
+                    Text(stringResource(R.string.cancelar))
+                }
             }
         )
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Composables privados de apoyo
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Composables privados ──────────────────────────────────────────────────────
 
 @Composable
 private fun SeccionTitulo(texto: String) {
-    Text(texto, fontSize = 18.sp, fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary)
+    Text(texto, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
 }
 
 @Composable
 private fun FilaConfirmacion(etiqueta: String, valor: String) {
     Row {
         Text("$etiqueta: ", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-        Text(valor, fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(valor, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
-private fun BotonEvidencia(
-    icono: ImageVector, etiqueta: String,
-    modifier: Modifier = Modifier, onClick: () -> Unit
-) {
-    OutlinedCard(
-        onClick  = onClick,
-        modifier = modifier.height(100.dp),
-        shape    = RoundedCornerShape(16.dp)
-    ) {
+private fun BotonEvidencia(icono: ImageVector, etiqueta: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    OutlinedCard(onClick = onClick, modifier = modifier.height(100.dp), shape = RoundedCornerShape(16.dp)) {
         Column(
             modifier = Modifier.fillMaxSize().padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(icono, contentDescription = null, modifier = Modifier.size(32.dp),
-                tint = MaterialTheme.colorScheme.primary)
+            Icon(icono, contentDescription = null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.height(6.dp))
             Text(etiqueta, fontSize = 13.sp, fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center, lineHeight = 16.sp)
+                color = MaterialTheme.colorScheme.onSurface, textAlign = TextAlign.Center, lineHeight = 16.sp)
         }
     }
 }
 
-// ── TopHeader ──────────────────────────────────────────────────────────────────
+// ── TopHeader ─────────────────────────────────────────────────────────────────
 @Composable
 fun TopHeader(onLogout: () -> Unit, onNavigateToSettings: () -> Unit) {
     val primaryColor          = MaterialTheme.colorScheme.primary
@@ -651,19 +570,18 @@ fun TopHeader(onLogout: () -> Unit, onNavigateToSettings: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Image(
                 painter            = painterResource(id = R.drawable.logo_sjl),
-                contentDescription = "Logo SJL Alerta",
+                contentDescription = stringResource(R.string.sjl_alerta_header),
                 modifier           = Modifier.size(32.dp).clip(CircleShape),
                 contentScale       = ContentScale.Fit
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("SJL Alerta", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = primaryColor)
+            Text(stringResource(R.string.sjl_alerta_header), fontWeight = FontWeight.Bold, fontSize = 20.sp, color = primaryColor)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.NotificationsNone, contentDescription = null,
-                tint = onSurfaceVariantColor)
+            Icon(Icons.Default.NotificationsNone, contentDescription = null, tint = onSurfaceVariantColor)
             Spacer(modifier = Modifier.width(16.dp))
             IconButton(onClick = onLogout) {
-                Icon(Icons.Default.Logout, contentDescription = null, tint = onSurfaceVariantColor)
+                Icon(Icons.Default.Logout, contentDescription = stringResource(R.string.logout), tint = onSurfaceVariantColor)
             }
             Spacer(modifier = Modifier.width(8.dp))
             IconButton(onClick = onNavigateToSettings) {
@@ -671,7 +589,7 @@ fun TopHeader(onLogout: () -> Unit, onNavigateToSettings: () -> Unit) {
                     modifier         = Modifier.size(36.dp).clip(CircleShape).background(onSurfaceColor),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Settings, contentDescription = "Configuración",
+                    Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.configuracion_btn),
                         tint = surfaceColor, modifier = Modifier.size(20.dp))
                 }
             }
@@ -679,7 +597,7 @@ fun TopHeader(onLogout: () -> Unit, onNavigateToSettings: () -> Unit) {
     }
 }
 
-// ── ReportCard ─────────────────────────────────────────────────────────────────
+// ── ReportCard ────────────────────────────────────────────────────────────────
 @Composable
 fun ReportCard(
     title: String, icon: ImageVector, iconBg: Color, iconColor: Color,
@@ -691,47 +609,28 @@ fun ReportCard(
 
     Card(
         onClick   = onClick,
-        modifier  = modifier
-            .height(140.dp)
-            .then(
-                if (isSelected)
-                    Modifier.border(2.dp, primaryColor, RoundedCornerShape(16.dp))
-                else Modifier
-            ),
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(
-            containerColor = if (isSelected) SoftRed else surfaceColor
+        modifier  = modifier.height(140.dp).then(
+            if (isSelected) Modifier.border(2.dp, primaryColor, RoundedCornerShape(16.dp)) else Modifier
         ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isSelected) 6.dp else 2.dp
-        )
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = if (isSelected) SoftRed else surfaceColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 6.dp else 2.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
-            verticalArrangement = Arrangement.Center
-        ) {
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.Center) {
             Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(iconBg),
+                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(iconBg),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(icon, contentDescription = null, tint = iconColor)
             }
             Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text       = title,
-                fontSize   = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color      = if (isSelected) DeepRed else onSurfaceColor,
-                lineHeight = 18.sp
-            )
+            Text(text = title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                color = if (isSelected) DeepRed else onSurfaceColor, lineHeight = 18.sp)
         }
     }
 }
 
-// ── BottomNavigationBar ────────────────────────────────────────────────────────
+// ── BottomNavigationBar ───────────────────────────────────────────────────────
 @Composable
 fun BottomNavigationBar(
     currentScreen: String,
@@ -739,43 +638,33 @@ fun BottomNavigationBar(
     onReportsClick: () -> Unit,
     onDirectoryClick: () -> Unit
 ) {
-    Surface(
-        modifier        = Modifier.fillMaxWidth(),
-        shadowElevation = 8.dp,
-        color           = MaterialTheme.colorScheme.surface
-    ) {
+    Surface(modifier = Modifier.fillMaxWidth(), shadowElevation = 8.dp, color = MaterialTheme.colorScheme.surface) {
         Row(
             modifier              = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment     = Alignment.CenterVertically
         ) {
-            BottomNavItem(Icons.Default.Home,         "Inicio",     currentScreen == "home",      onHomeClick)
-            BottomNavItem(Icons.Default.Assignment,   "Reportes",   currentScreen == "reports",   onReportsClick)
-            BottomNavItem(Icons.Default.ContactPhone, "Directorio", currentScreen == "directory", onDirectoryClick)
+            BottomNavItem(Icons.Default.Home,         stringResource(R.string.inicio),     currentScreen == "home",      onHomeClick)
+            BottomNavItem(Icons.Default.Assignment,   stringResource(R.string.reportes),   currentScreen == "reports",   onReportsClick)
+            BottomNavItem(Icons.Default.ContactPhone, stringResource(R.string.directorio), currentScreen == "directory", onDirectoryClick)
         }
     }
 }
 
-// ── BottomNavItem ──────────────────────────────────────────────────────────────
+// ── BottomNavItem ─────────────────────────────────────────────────────────────
 @Composable
 fun BottomNavItem(icon: ImageVector, label: String, isSelected: Boolean, onClick: () -> Unit) {
     val primaryColor          = MaterialTheme.colorScheme.primary
     val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+        modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(icon, contentDescription = label,
-            tint = if (isSelected) primaryColor else onSurfaceVariantColor)
-        Text(
-            text       = label,
-            fontSize   = 12.sp,
-            color      = if (isSelected) primaryColor else onSurfaceVariantColor,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-        )
+        Icon(icon, contentDescription = label, tint = if (isSelected) primaryColor else onSurfaceVariantColor)
+        Text(text = label, fontSize = 12.sp,
+            color = if (isSelected) primaryColor else onSurfaceVariantColor,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
     }
 }

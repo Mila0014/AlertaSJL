@@ -17,6 +17,7 @@ class PreferenceManager(context: Context) {
     fun setLanguage(lang: String) = prefs.edit().putString("Language", lang).apply()
 
     // get & set para la variable de tamaño de fuente (float)
+    // 16f = tamaño base normal
     fun getFontSize() = prefs.getFloat("font_size", 16f)
     fun setFontSize(size: Float) = prefs.edit().putFloat("font_size", size).apply()
 

@@ -1,5 +1,6 @@
 package com.example.sjl_alert_v4.actividades
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,6 +15,19 @@ import com.example.sjl_alert_v4.sharedPrefs.PreferenceManager
 import com.example.sjl_alert_v4.ui.theme.SJL_Alert_v4Theme
 
 class MainActivity : ComponentActivity() {
+
+    /**
+     * attachBaseContext se ejecuta ANTES que onCreate.
+     * Es el punto correcto para aplicar el locale en Android 7+,
+     * ya que envuelve el contexto base con la configuración correcta
+     * desde el inicio del ciclo de vida de la Activity.
+     */
+    override fun attachBaseContext(newBase: Context) {
+        val prefManager = PreferenceManager(newBase)
+        val language = prefManager.getLanguage()
+        super.attachBaseContext(LocaleHelper.wrap(newBase, language))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -79,7 +93,7 @@ fun AppNavigation() {
                 onNuevoReporte = { navController.navigate("reports") },
                 onNavigateToDirectory = { navController.navigate("directory") },
                 onVerDetalles = { id ->
-                    navController.navigate("reporte_detalles/$id")   // ✅
+                    navController.navigate("reporte_detalles/$id")
                 }
             )
         }

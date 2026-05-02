@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App -->
+    <string name="app_name">SJL Alert</string>
+
+    <!-- AjustesPrefs -->
+    <string name="configuracion">Settings</string>
+    <string name="mi_cuenta">My account</string>
+    <string name="telefono">Phone</string>
+    <string name="no_configurado">Not configured</string>
+    <string name="correo_electronico">Email address</string>
+    <string name="cambiar_contrasena">Change password</string>
+    <string name="preferencias_app">App Preferences</string>
+    <string name="modo_oscuro">Dark Mode</string>
+    <string name="tamano_fuente">Font size</string>
+    <string name="idioma">Language</string>
+    <string name="notificaciones">Notifications</string>
+    <string name="notif_correo">Email Notifications</string>
+    <string name="alertas_comunitarias">Community Alerts</string>
+    <string name="seguridad_privacidad">Security and Privacy</string>
+    <string name="compartir_ubicacion">Share Location in Emergencies</string>
+    <string name="historial_reportes">Report History</string>
+    <string name="ver_incidencias">View my past incidents</string>
+    <string name="ayuda_soporte">Help and Support</string>
+    <string name="terminos">Terms and Conditions</string>
+    <string name="privacidad">Privacy Policy</string>
+    <string name="version_app">Version 1.0.0</string>
+    <string name="vecino_activo">Active neighbor</string>
+    <string name="anios">years old</string>
+    <string name="cancelar">Cancel</string>
+    <string name="guardar">Save</string>
+    <string name="aplicar">Apply</string>
+    <string name="pequeno">Small</string>
+    <string name="normal">Normal</string>
+    <string name="grande">Large</string>
+    <string name="muy_grande">Very large</string>
+    <string name="seleccionar_idioma">Select Language</string>
+    <string name="sin_correo">No email</string>
+    <string name="usuario">User</string>
+    <string name="atras">Back</string>
+    <string name="contrasena_actual">Current password</string>
+    <string name="nueva_contrasena">New password</string>
+    <string name="confirmar_contrasena">Confirm new password</string>
+    <string name="min_6_caracteres">Minimum 6 characters</string>
+    <string name="editar_telefono">Edit Phone</string>
+    <string name="nuevo_telefono">New phone number</string>
+    <string name="editar_correo">Edit Email</string>
+    <string name="nuevo_correo">New email address</string>
+    <string name="cambiar_contrasena_titulo">Change Password</string>
+    <string name="telefono_actualizado">Phone updated</string>
+    <string name="correo_actualizado">Email updated</string>
+    <string name="contrasena_actualizada">Password updated</string>
+    <string name="error_actualizar">Error updating</string>
+    <string name="error_telefono_digitos">Phone must have 9 digits</string>
+    <string name="error_solo_numeros">Only numbers are allowed</string>
+    <string name="error_correo_vacio">Email cannot be empty</string>
+    <string name="error_correo_invalido">Enter a valid email</string>
+    <string name="error_contrasena_actual">Enter your current password</string>
+    <string name="error_contrasena_min">New password must be at least 6 characters</string>
+    <string name="error_contrasena_no_coinciden">Passwords do not match</string>
+    <string name="error_contrasena_igual">New password must be different</string>
+    <string name="error_contrasena_incorrecta">Current password is incorrect</string>
+
+    <!-- DirectorioPage -->
+    <string name="directorio_titulo">Emergency\nDirectory</string>
+    <string name="directorio_subtitulo">Immediate access to emergency services in San Juan de Lurigancho.</string>
+    <string name="principal">MAIN</string>
+    <string name="llamar">Call %s</string>
+    <!-- Contactos del directorio -->
+    <string name="contacto_serenazgo_nombre">Serenazgo SJL</string>
+    <string name="contacto_serenazgo_desc">Citizen Security Center</string>
+    <string name="contacto_pnp_nombre">PNP</string>
+    <string name="contacto_pnp_desc">EMERGENCIES 105</string>
+    <string name="contacto_bomberos_nombre">Fire Department</string>
+    <string name="contacto_bomberos_desc">EMERGENCIES 116</string>
+
+    <!-- MisReportesPage -->
+    <string name="hola_vecino">Hello, %s 👋</string>
+    <string name="tus_reportes">Here are your submitted reports.</string>
+    <string name="sin_reportes">No reports yet</string>
+    <string name="ir_a_reportes">Go to Reports to create one</string>
+    <string name="crear_reporte">Create report</string>
+    <string name="nuevo_reporte">New report</string>
+    <string name="pendiente">Pending</string>
+    <string name="en_proceso">In progress</string>
+    <string name="resuelto">Resolved</string>
+    <string name="rechazado">Rejected</string>
+    <string name="evidencias_adjuntas">%d attachment(s)</string>
+    <string name="ver_detalles">View details</string>
+
+    <!-- ReportsPage -->
+    <string name="reportar_incidencia">Report Incident</string>
+    <string name="reportar_subtitulo">Your safety is our priority.\nSelect the type of event.</string>
+    <string name="tipo_incidencia">Incident Type</string>
+    <string name="ubicacion_actual">Your Current Location</string>
+    <string name="en_tiempo_real">REAL TIME</string>
+    <string name="modificar_ubicacion">Edit location manually</string>
+    <string name="adjuntar_evidencia">Attach Evidence</string>
+    <string name="subir_foto_video">Upload Photo/Video</string>
+    <string name="tomar_foto">Take Photo</string>
+    <string name="archivos_adjuntos">%d file(s) attached</string>
+    <string name="quitar_todo">Remove all</string>
+    <string name="comentario_adicional">Additional comment</string>
+    <string name="comentario_placeholder">Describe what the report is about...</string>
+    <string name="enviar_alerta">Send Alert</string>
+    <string name="enviar_alerta_aviso">Hold to confirm. Local emergency\nservices will be notified immediately.</string>
+    <string name="modificar_ubicacion_titulo">Edit Location</string>
+    <string name="direccion">Address</string>
+    <string name="confirmar">Confirm</string>
+    <string name="enviar_alerta_pregunta">Send alert?</string>
+    <string name="confirmar_enviar">Confirm and Send</string>
+    <string name="tipo_label">Type</string>
+    <string name="ubicacion_label">Location</string>
+    <string name="archivos_label">Files</string>
+    <string name="comentario_label">Comment</string>
+    <string name="ruidos_molestos">Noise complaint</string>
+    <string name="libadores">Public intoxication</string>
+    <string name="alerta_robo">Robbery alert</string>
+    <string name="siniestro">Accident</string>
+    <string name="otro">Other (specify)</string>
+    <string name="describe_tipo">Describe the incident type</string>
+    <string name="describe_tipo_placeholder">E.g.: Street fight, stray dogs...</string>
+    <string name="alerta_enviada">Alert sent successfully!</string>
+    <string name="error_guardar">Error saving: %s</string>
+    <string name="escribe_descripcion">Write a description</string>
+    <string name="obteniendo_ubicacion">Getting location...</string>
+    <string name="inicio">Home</string>
+    <string name="reportes">Reports</string>
+    <string name="directorio">Directory</string>
+
+    <!-- ReportDetailPage -->
+    <string name="nuevo_reporte_titulo">New Report</string>
+    <string name="tipo_incidencia_label">Incident Type</string>
+    <string name="ubicacion_tiempo_real">Your Real-Time Location</string>
+    <string name="en_vivo">● LIVE</string>
+    <string name="referencia_direccion">Reference or address</string>
+    <string name="adjuntar_evidencia_subtitulo">You can upload photos or videos of the incident</string>
+    <string name="camara">Camera</string>
+    <string name="fotos">Photos</string>
+    <string name="video">Video</string>
+    <string name="descripcion_incidente">Incident Description</string>
+    <string name="descripcion_placeholder">Tell us what is happening so we can help you better...</string>
+    <string name="enviar_reporte">Send Report</string>
+    <string name="reporte_enviado_titulo">Report Sent!</string>
+    <string name="reporte_enviado_msg">Your report for \"%s\" was successfully registered. Authorities have been notified.</string>
+    <string name="ver_mis_reportes">View my reports</string>
+    <string name="permiso_camara_denegado">Camera permission denied</string>
+    <string name="error_enviar_reporte">Error sending report</string>
+
+    <!-- ReporteDetallesPage -->
+    <string name="detalle_reporte">Report Detail</string>
+    <string name="fecha_hora">Date and time</string>
+    <string name="descripcion">Description</string>
+    <string name="evidencias">Evidence (%d)</string>
+    <string name="toca_imagen">Tap an image to view it full screen</string>
+    <string name="sin_evidencias">No attachments</string>
+    <string name="cerrar">Close</string>
+
+    <!-- RegisterPage -->
+    <string name="sjl_alerta">SJL Alert</string>
+    <string name="crear_cuenta_vecino">Create neighbor account</string>
+    <string name="registro">Register</string>
+    <string name="completa_datos">Complete your personal information</string>
+    <string name="nombre">NAME</string>
+    <string name="apellido">LAST NAME</string>
+    <string name="dni">ID NUMBER</string>
+    <string name="fecha_nacimiento">DATE OF BIRTH</string>
+    <string name="correo_label">EMAIL ADDRESS</string>
+    <string name="telefono_label">PHONE</string>
+    <string name="direccion_label">ADDRESS (OPTIONAL)</string>
+    <string name="contrasena_label">PASSWORD</string>
+    <string name="confirmar_contrasena_label">CONFIRM PASSWORD</string>
+    <string name="repite_contrasena">Repeat your password</string>
+    <string name="crear_cuenta">Create Account</string>
+    <string name="ya_tienes_cuenta">Already have an account?</string>
+    <string name="iniciar_sesion">Sign In</string>
+    <string name="error_nombre_apellido">Enter your name and last name</string>
+    <string name="error_dni">ID must have 8 digits</string>
+    <string name="error_fecha">Enter a valid date of birth</string>
+    <string name="error_mayor_edad">You must be over 18 to register</string>
+    <string name="error_correo">Enter a valid email</string>
+    <string name="error_telefono">Enter a valid phone number</string>
+    <string name="error_contrasena_longitud">Password must be at least 6 characters</string>
+    <string name="error_contrasena_coinciden">Passwords do not match</string>
+    <string name="error_dni_correo_registrado">ID or email already registered</string>
+    <string name="cuenta_creada">Account created successfully!</string>
+    <string name="error_guardar_registro">Error saving: %s</string>
+    <string name="mayor_18">You must be over 18 to register</string>
+    <string name="fecha_invalida">Enter a valid date</string>
+
+    <!-- WelcomePage -->
+    <string name="bienvenido">Welcome,</string>
+    <string name="welcome_mensaje">Your safety is our priority.\nTogether we make SJL a safer place.</string>
+    <string name="continuar">Continue →</string>
+
+    <!-- TopHeader / BottomNav -->
+    <string name="sjl_alerta_header">SJL Alert</string>
+    <string name="logout">Log out</string>
+    <string name="configuracion_btn">Settings</string>
+</resources>
