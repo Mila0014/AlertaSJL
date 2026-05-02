@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.sjl_alert_v4.actividades.recuperacion.RecuperarContraPage
 import com.example.sjl_alert_v4.sharedPrefs.PreferenceManager
 import com.example.sjl_alert_v4.ui.theme.SJL_Alert_v4Theme
 
@@ -56,7 +57,21 @@ fun AppNavigation() {
                         popUpTo("login") { inclusive = true }
                     }
                 },
-                onRegisterClick = { navController.navigate("register") }
+                onRegisterClick = { navController.navigate("register") },
+                // ── NUEVO: navega a la pantalla de recuperar contraseña ──
+                onForgotPasswordClick = { navController.navigate("recuperar") }
+            )
+        }
+
+        // ── NUEVO: flujo de recuperación de contraseña (3 pasos) ──────────
+        composable("recuperar") {
+            RecuperarContraPage(
+                onBack = { navController.popBackStack() },
+                onLoginClick = {
+                    navController.navigate("login") {
+                        popUpTo("recuperar") { inclusive = true }
+                    }
+                }
             )
         }
 
