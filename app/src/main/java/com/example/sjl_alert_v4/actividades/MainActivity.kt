@@ -14,15 +14,13 @@ import androidx.navigation.compose.rememberNavController
 import com.example.sjl_alert_v4.actividades.recuperacion.RecuperarContraPage
 import com.example.sjl_alert_v4.sharedPrefs.PreferenceManager
 import com.example.sjl_alert_v4.ui.theme.SJL_Alert_v4Theme
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import com.example.sjl_alert_v4.modelos.AppDatabase
 
 class MainActivity : ComponentActivity() {
 
-    /**
-     * attachBaseContext se ejecuta ANTES que onCreate.
-     * Es el punto correcto para aplicar el locale en Android 7+,
-     * ya que envuelve el contexto base con la configuración correcta
-     * desde el inicio del ciclo de vida de la Activity.
-     */
     override fun attachBaseContext(newBase: Context) {
         val prefManager = PreferenceManager(newBase)
         val language = prefManager.getLanguage()
@@ -32,6 +30,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Fuerza apertura de la DB para que App Inspection pueda conectarse
+        lifecycleScope.launch(Dispatchers.IO) {
+            AppDatabase.getInstance(this@MainActivity).openHelper.readableDatabase
+        }
+
         setContent {
             SJL_Alert_v4Theme {
                 AppNavigation()
@@ -63,7 +67,6 @@ fun AppNavigation() {
             )
         }
 
-        // ── NUEVO: flujo de recuperación de contraseña (3 pasos) ──────────
         composable("recuperar") {
             RecuperarContraPage(
                 onBack = { navController.popBackStack() },
@@ -102,7 +105,7 @@ fun AppNavigation() {
                 onBack = { },
                 onLogout = {
                     prefManager.cerrarSesion()
-                    navController.navigate("login") { popUpTo(0) { inclusive = true } }
+                    navController.navigate("cerrando_sesion") { popUpTo(0) { inclusive = true } }
                 },
                 onNavigateToSettings = { navController.navigate("settings") },
                 onNuevoReporte = { navController.navigate("reports") },
@@ -113,12 +116,11 @@ fun AppNavigation() {
             )
         }
 
-        // ── REPORTES: formulario para reportar ────────────────────────────────
         composable("reports") {
             ReportsPage(
                 onLogout = {
                     prefManager.cerrarSesion()
-                    navController.navigate("login") { popUpTo(0) { inclusive = true } }
+                    navController.navigate("cerrando_sesion") { popUpTo(0) { inclusive = true } }
                 },
                 onNavigateToDirectory = { navController.navigate("directory") },
                 onNavigateToSettings = { navController.navigate("settings") },
@@ -158,7 +160,7 @@ fun AppNavigation() {
                 onNavigateToReports = { navController.navigate("reports") },
                 onLogout = {
                     prefManager.cerrarSesion()
-                    navController.navigate("login") { popUpTo(0) { inclusive = true } }
+                    navController.navigate("cerrando_sesion") { popUpTo(0) { inclusive = true } }
                 },
                 onNavigateToSettings = { navController.navigate("settings") }
             )
@@ -169,6 +171,15 @@ fun AppNavigation() {
                 onBack = { navController.popBackStack() },
                 onThemeChanged = {
                     (context as? android.app.Activity)?.recreate()
+                }
+            )
+        }
+
+        // ── PANTALLA DE TRANSICIÓN: cerrando sesión ────────────────────────
+        composable("cerrando_sesion") {
+            CerrandoSesionPage(
+                onFinished = {
+                    navController.navigate("login") { popUpTo(0) { inclusive = true } }
                 }
             )
         }

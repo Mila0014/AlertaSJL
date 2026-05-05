@@ -58,6 +58,21 @@ fun LoginPage(
     var rememberMe by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val prefManager = remember { PreferenceManager(context) }
+    var estaBloqueado by remember { mutableStateOf(prefManager.estaBloqueado()) }
+    var tiempoRestante by remember { mutableStateOf(prefManager.getTiempoBloqueoRestante()) }
+
+    // Cuenta regresiva del bloqueo
+    LaunchedEffect(estaBloqueado) {
+        while (estaBloqueado) {
+            kotlinx.coroutines.delay(1000)
+            tiempoRestante = prefManager.getTiempoBloqueoRestante()
+            if (tiempoRestante <= 0L) {
+                estaBloqueado = false
+                errorMessage = null
+            }
+        }
+    }
 
     // ── Colores dinámicos del tema activo ──────────────────────────────────────
     val backgroundColor = MaterialTheme.colorScheme.background
@@ -320,6 +335,9 @@ fun LoginPage(
                     Button(
                         onClick = {
                             when {
+                                dniOrEmail.isBlank() && password.isBlank() -> {
+                                    errorMessage = "Todos los campos son obligatorios"
+                                }
                                 dniOrEmail.isBlank() -> {
                                     errorMessage = "Ingresa tu DNI o correo"
                                 }
@@ -331,13 +349,33 @@ fun LoginPage(
                                     errorMessage = null
                                     scope.launch {
                                         try {
+                                            // Verifica si está bloqueado
+                                            if (prefManager.estaBloqueado()) {
+                                                val mins = prefManager.getTiempoBloqueoRestante() / 60000
+                                                val segs = (prefManager.getTiempoBloqueoRestante() % 60000) / 1000
+                                                isLoading = false
+                                                estaBloqueado = true
+                                                errorMessage = "Cuenta bloqueada. Intenta en ${mins}m ${segs}s"
+                                                return@launch
+                                            }
+                                            // Verifica si el usuario existe
+                                            val usuarioExiste = db.usuarioDao().buscarPorDniOCorreo(
+                                                dni = dniOrEmail.trim(),
+                                                correo = dniOrEmail.trim()
+                                            )
+                                            if (usuarioExiste == null) {
+                                                isLoading = false
+                                                errorMessage = "Usuario no encontrado"
+                                                return@launch
+                                            }
+                                            // Verifica la contraseña
                                             val usuario = db.usuarioDao().login(
                                                 dniOCorreo = dniOrEmail.trim(),
                                                 contrasena = hashSHA256(password)
                                             )
                                             isLoading = false
                                             if (usuario != null) {
-                                                val prefManager = PreferenceManager(context)
+                                                prefManager.resetearIntentosFallidos()
                                                 prefManager.guardarSesion(
                                                     usuarioId = usuario.id,
                                                     nombre = usuario.nombre,
@@ -345,7 +383,15 @@ fun LoginPage(
                                                 )
                                                 onLoginSuccess()
                                             } else {
-                                                errorMessage = "DNI/correo o contraseña incorrectos"
+                                                prefManager.registrarIntentoFallido()
+                                                val intentos = prefManager.getIntentosFallidos()
+                                                errorMessage = if (prefManager.estaBloqueado()) {
+                                                    estaBloqueado = true
+                                                    tiempoRestante = prefManager.getTiempoBloqueoRestante()
+                                                    "Cuenta bloqueada por 5 minutos"
+                                                } else {
+                                                    "Contraseña incorrecta. Intentos restantes: ${3 - intentos}"
+                                                }
                                             }
                                         } catch (e: Exception) {
                                             isLoading = false
@@ -364,7 +410,7 @@ fun LoginPage(
                             contentColor = onPrimaryColor
                         ),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
-                        enabled = !isLoading
+                        enabled = !isLoading && !estaBloqueado
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(

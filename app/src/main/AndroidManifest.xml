@@ -25,6 +25,7 @@
             android:name=".actividades.MainActivity"
             android:exported="true"
             android:label="SJL Alerta"
+            android:launchMode="singleTask"
             android:theme="@style/Theme.SJL_Alert_v4">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

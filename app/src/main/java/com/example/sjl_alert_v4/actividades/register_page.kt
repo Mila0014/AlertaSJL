@@ -524,8 +524,10 @@ fun RegisterPage(
                     Button(
                         onClick = {
                             errorMessage = when {
-                                nombre.isBlank() || apellido.isBlank() ->
-                                    "Ingresa tu nombre y apellido"
+                                nombre.isBlank() || apellido.isBlank() || dni.isBlank() ||
+                                        fechaNacimiento.isBlank() || correo.isBlank() || telefono.isBlank() ||
+                                        contrasena.isBlank() || confirmarContrasena.isBlank() ->
+                                    "Todos los campos son obligatorios"
                                 dni.length != 8 ->
                                     "El DNI debe tener 8 dígitos"
                                 fechaNacimiento.length < 10 || edad == null ->
@@ -537,20 +539,23 @@ fun RegisterPage(
                                 telefono.length < 9 ->
                                     "Ingresa un teléfono válido"
                                 contrasena.length < 6 ->
-                                    "La contraseña debe tener al menos 6 caracteres"
+                                    "La contraseña debe tener mínimo 6 caracteres"
                                 contrasena != confirmarContrasena ->
                                     "Las contraseñas no coinciden"
                                 else -> null
                             }
-
                             if (errorMessage == null) {
                                 isLoading = true
                                 scope.launch {
                                     try {
                                         val existente = db.usuarioDao().buscarPorDniOCorreo(dni, correo)
                                         if (existente != null) {
-                                            errorMessage = "El DNI o correo ya están registrados"
                                             isLoading = false
+                                            errorMessage = if (existente.correo == correo.trim().lowercase()) {
+                                                "El correo ya está registrado"
+                                            } else {
+                                                "El DNI ya está registrado"
+                                            }
                                             return@launch
                                         }
 

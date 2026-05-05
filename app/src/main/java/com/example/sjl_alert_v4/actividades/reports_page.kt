@@ -129,6 +129,17 @@ fun ReportsPage(
         ActivityResultContracts.TakePicture()
     ) { exito -> if (exito) fotoUri?.let { uri -> urisSeleccionadas = urisSeleccionadas + uri } }
 
+    val permisoCamaraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        if (concedido) {
+            val archivo = File(context.cacheDir, "foto_${System.currentTimeMillis()}.jpg")
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", archivo)
+            fotoUri = uri
+            camaraLauncher.launch(uri)
+        }
+    }
+
     // ── Obtener ubicación GPS ──────────────────────────────────────────────
     LaunchedEffect(Unit) {
         try {
@@ -382,10 +393,7 @@ fun ReportsPage(
                     etiqueta = stringResource(R.string.tomar_foto),
                     modifier = Modifier.weight(1f),
                     onClick  = {
-                        val archivo = File(context.cacheDir, "foto_${System.currentTimeMillis()}.jpg")
-                        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", archivo)
-                        fotoUri = uri
-                        camaraLauncher.launch(uri)
+                        permisoCamaraLauncher.launch(android.Manifest.permission.CAMERA)
                     }
                 )
             }
@@ -559,6 +567,31 @@ fun TopHeader(onLogout: () -> Unit, onNavigateToSettings: () -> Unit) {
     val surfaceColor          = MaterialTheme.colorScheme.surface
     val onSurfaceColor        = MaterialTheme.colorScheme.onSurface
 
+    var mostrarDialogo by remember { mutableStateOf(false) }
+
+    if (mostrarDialogo) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogo = false },
+            title = {
+                Text(text = "Cerrar sesión", fontWeight = FontWeight.Bold, color = primaryColor)
+            },
+            text = {
+                Text("¿Deseas salir de tu cuenta?")
+            },
+            confirmButton = {
+                Button(
+                    onClick = { mostrarDialogo = false; onLogout() },
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
+                ) { Text("Salir") }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { mostrarDialogo = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -580,7 +613,7 @@ fun TopHeader(onLogout: () -> Unit, onNavigateToSettings: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.NotificationsNone, contentDescription = null, tint = onSurfaceVariantColor)
             Spacer(modifier = Modifier.width(16.dp))
-            IconButton(onClick = onLogout) {
+            IconButton(onClick = { mostrarDialogo = true }) {
                 Icon(Icons.Default.Logout, contentDescription = stringResource(R.string.logout), tint = onSurfaceVariantColor)
             }
             Spacer(modifier = Modifier.width(8.dp))

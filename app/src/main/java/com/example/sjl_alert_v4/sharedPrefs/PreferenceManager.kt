@@ -61,4 +61,42 @@ class PreferenceManager(context: Context) {
             .remove("sesion_correo")
             .apply()
     }
+
+    // ---- BLOQUEO POR INTENTOS FALLIDOS (CP-01.4) ----
+    private val MAX_INTENTOS = 3
+    private val TIEMPO_BLOQUEO_MS = 5 * 60 * 1000L // 5 minutos en milisegundos
+
+    fun getIntentosFallidos() = prefs.getInt("intentos_fallidos", 0)
+
+    fun registrarIntentoFallido() {
+        val intentos = getIntentosFallidos() + 1
+        prefs.edit().putInt("intentos_fallidos", intentos).apply()
+        if (intentos >= MAX_INTENTOS) {
+            prefs.edit().putLong("bloqueo_hasta", System.currentTimeMillis() + TIEMPO_BLOQUEO_MS).apply()
+        }
+    }
+
+    fun resetearIntentosFallidos() {
+        prefs.edit()
+            .putInt("intentos_fallidos", 0)
+            .remove("bloqueo_hasta")
+            .apply()
+    }
+
+    fun estaBloqueado(): Boolean {
+        val bloqueoHasta = prefs.getLong("bloqueo_hasta", 0L)
+        if (bloqueoHasta == 0L) return false
+        return if (System.currentTimeMillis() < bloqueoHasta) {
+            true
+        } else {
+            resetearIntentosFallidos()
+            false
+        }
+    }
+
+    fun getTiempoBloqueoRestante(): Long {
+        val bloqueoHasta = prefs.getLong("bloqueo_hasta", 0L)
+        val restante = bloqueoHasta - System.currentTimeMillis()
+        return if (restante > 0) restante else 0L
+    }
 }
