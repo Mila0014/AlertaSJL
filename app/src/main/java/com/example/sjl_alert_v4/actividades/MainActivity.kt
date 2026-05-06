@@ -169,6 +169,10 @@ fun AppNavigation() {
         composable("settings") {
             AjustesPrefs(
                 onBack = { navController.popBackStack() },
+                onLogout = {
+                    prefManager.cerrarSesion()
+                    navController.navigate("cerrando_sesion") { popUpTo(0) { inclusive = true } }
+                },
                 onThemeChanged = {
                     (context as? android.app.Activity)?.recreate()
                 }

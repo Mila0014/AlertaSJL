@@ -211,4 +211,9 @@
     <string name="sjl_alerta_header">SJL Alert</string>
     <string name="logout">Log out</string>
     <string name="configuracion_btn">Settings</string>
+    <string name="cuenta_sesion">Account and Session</string>
+    <string name="cerrar_sesion">Log Out</string>
+    <string name="salir_cuenta_desc">Exit your current account</string>
+    <string name="salir_pregunta">Do you want to log out?</string>
+    <string name="salir_confirmar">Log Out</string>
 </resources>
