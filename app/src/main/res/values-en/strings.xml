@@ -73,6 +73,20 @@
     <string name="contacto_pnp_desc">EMERGENCIES 105</string>
     <string name="contacto_bomberos_nombre">Fire Department</string>
     <string name="contacto_bomberos_desc">EMERGENCIES 116</string>
+    <string name="contacto_samu_nombre">SAMU</string>
+    <string name="contacto_samu_desc">AMBULANCE 106</string>
+    <string name="contacto_comisaria_se_nombre">Police Station</string>
+    <string name="contacto_comisaria_se_desc">SANTA ELIZABETH</string>
+    <string name="contacto_comisaria_zarate_nombre">Zárate Police Station</string>
+    <string name="contacto_comisaria_canto_rey_nombre">Canto Rey Police Station</string>
+    <string name="contacto_radio_exitosa_nombre">Radio Exitosa</string>
+    <string name="contacto_radio_exitosa_desc">Reports and news</string>
+    <string name="contacto_rpp_nombre">RPP</string>
+    <string name="contacto_rpp_desc">Rotafono</string>
+
+    <string name="otras_comisarias_titulo">Other District Police Stations</string>
+    <string name="prensa_denuncias_titulo">Press and Reports</string>
+    <string name="whatsapp_label">WhatsApp: %s</string>
 
     <!-- MisReportesPage -->
     <string name="hola_vecino">Hello, %s 👋</string>
