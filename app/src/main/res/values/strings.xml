@@ -211,4 +211,9 @@
     <string name="sjl_alerta_header">SJL Alerta</string>
     <string name="logout">Cerrar sesión</string>
     <string name="configuracion_btn">Configuración</string>
+    <string name="cuenta_sesion">Cuenta y Sesión</string>
+    <string name="cerrar_sesion">Cerrar Sesión</string>
+    <string name="salir_cuenta_desc">Salir de tu cuenta actual</string>
+    <string name="salir_pregunta">¿Deseas salir de tu cuenta?</string>
+    <string name="salir_confirmar">Salir</string>
 </resources>

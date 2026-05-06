@@ -35,6 +35,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun AjustesPrefs(
     onBack: () -> Unit,
+    onLogout: () -> Unit = {},
     onThemeChanged: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -62,6 +63,7 @@ fun AjustesPrefs(
     var mostrarDialogoCorreo by remember { mutableStateOf(false) }
     var mostrarDialogoContrasena by remember { mutableStateOf(false) }
     var mostrarDialogoIdioma by remember { mutableStateOf(false) }
+    var mostrarDialogoLogout by remember { mutableStateOf(false) }
 
     // ── Datos cargados desde la DB ────────────────────────────────────────────
     var telefonoActual by remember { mutableStateOf("") }
@@ -189,6 +191,33 @@ fun AjustesPrefs(
                 onThemeChanged()
             },
             onDismiss = { mostrarDialogoIdioma = false }
+        )
+    }
+
+    // ── DIÁLOGO: Confirmar Logout ─────────────────────────────────────────────
+    if (mostrarDialogoLogout) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoLogout = false },
+            title = {
+                Text(text = stringResource(R.string.cerrar_sesion), fontWeight = FontWeight.Bold, color = primaryColor)
+            },
+            text = {
+                Text(stringResource(R.string.salir_pregunta))
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        mostrarDialogoLogout = false
+                        onLogout()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
+                ) { Text(stringResource(R.string.salir_confirmar)) }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { mostrarDialogoLogout = false }) {
+                    Text(stringResource(R.string.cancelar))
+                }
+            }
         )
     }
 
@@ -470,6 +499,16 @@ fun AjustesPrefs(
                     icon = Icons.Default.PrivacyTip,
                     title = stringResource(R.string.privacidad),
                     onClick = { }
+                )
+            }
+
+            // ── SECCIÓN: Sesión ───────────────────────────────────────────
+            SettingsSection(title = stringResource(R.string.cuenta_sesion)) {
+                SettingsItem(
+                    icon = Icons.Default.Logout,
+                    title = stringResource(R.string.cerrar_sesion),
+                    subtitle = stringResource(R.string.salir_cuenta_desc),
+                    onClick = { mostrarDialogoLogout = true }
                 )
             }
 
