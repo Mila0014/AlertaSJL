@@ -217,6 +217,4 @@
     <string name="salir_cuenta_desc">Salir de tu cuenta actual</string>
     <string name="salir_pregunta">¿Deseas salir de tu cuenta?</string>
     <string name="salir_confirmar">Salir</string>
-    <string name="bienvenido_usuario">Bienvenido %s</string>
-    <string name="sesion_cerrada">Sesión cerrada</string>
 </resources>
