@@ -134,7 +134,8 @@
     <string name="otro">Other (specify)</string>
     <string name="describe_tipo">Describe the incident type</string>
     <string name="describe_tipo_placeholder">E.g.: Street fight, stray dogs...</string>
-    <string name="alerta_enviada">Alert sent successfully!</string>
+    <string name="alerta_enviada">Report created successfully</string>
+    <string name="error_campos_vacios">Please complete all mandatory fields</string>
     <string name="error_guardar">Error saving: %s</string>
     <string name="escribe_descripcion">Write a description</string>
     <string name="obteniendo_ubicacion">Getting location...</string>
@@ -197,7 +198,7 @@
     <string name="error_contrasena_longitud">Password must be at least 6 characters</string>
     <string name="error_contrasena_coinciden">Passwords do not match</string>
     <string name="error_dni_correo_registrado">ID or email already registered</string>
-    <string name="cuenta_creada">Account created successfully!</string>
+    <string name="cuenta_creada">Successful registration. Welcome</string>
     <string name="error_guardar_registro">Error saving: %s</string>
     <string name="mayor_18">You must be over 18 to register</string>
     <string name="fecha_invalida">Enter a valid date</string>
@@ -216,4 +217,6 @@
     <string name="salir_cuenta_desc">Exit your current account</string>
     <string name="salir_pregunta">Do you want to log out?</string>
     <string name="salir_confirmar">Log Out</string>
+    <string name="bienvenido_usuario">Welcome %s</string>
+    <string name="sesion_cerrada">Session closed</string>
 </resources>

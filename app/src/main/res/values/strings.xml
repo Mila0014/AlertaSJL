@@ -134,7 +134,8 @@
     <string name="otro">Otro (especificar)</string>
     <string name="describe_tipo">Describe el tipo de incidencia</string>
     <string name="describe_tipo_placeholder">Ej: Pelea en la calle, perros sueltos...</string>
-    <string name="alerta_enviada">¡Alerta enviada exitosamente!</string>
+    <string name="alerta_enviada">Reporte creado exitosamente</string>
+    <string name="error_campos_vacios">Por favor, completa todos los campos obligatorios</string>
     <string name="error_guardar">Error al guardar: %s</string>
     <string name="escribe_descripcion">Escribe una descripción</string>
     <string name="obteniendo_ubicacion">Obteniendo ubicación...</string>
@@ -197,7 +198,7 @@
     <string name="error_contrasena_longitud">La contraseña debe tener al menos 6 caracteres</string>
     <string name="error_contrasena_coinciden">Las contraseñas no coinciden</string>
     <string name="error_dni_correo_registrado">El DNI o correo ya están registrados</string>
-    <string name="cuenta_creada">¡Cuenta creada exitosamente!</string>
+    <string name="cuenta_creada">Registro exitoso. Bienvenido</string>
     <string name="error_guardar_registro">Error al guardar: %s</string>
     <string name="mayor_18">Debes ser mayor de 18 años para registrarte</string>
     <string name="fecha_invalida">Ingresa una fecha válida</string>
@@ -216,4 +217,6 @@
     <string name="salir_cuenta_desc">Salir de tu cuenta actual</string>
     <string name="salir_pregunta">¿Deseas salir de tu cuenta?</string>
     <string name="salir_confirmar">Salir</string>
+    <string name="bienvenido_usuario">Bienvenido %s</string>
+    <string name="sesion_cerrada">Sesión cerrada</string>
 </resources>

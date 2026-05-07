@@ -435,16 +435,21 @@ fun ReportsPage(
             Spacer(modifier = Modifier.height(32.dp))
 
             // ── 5. Botón Enviar Alerta ─────────────────────────────────────
-            val puedeEnviar = tipoSeleccionadoId != null &&
-                    (tipoSeleccionadoId != "otro" || tipoPersonalizado.isNotBlank()) &&
-                    !cargando
+            val isOtroAndEmpty = tipoSeleccionadoId == "otro" && tipoPersonalizado.isBlank()
+            val puedeEnviar = tipoSeleccionadoId != null && !cargando
 
             Button(
-                onClick  = { mostrarConfirmacion = true },
+                onClick  = {
+                    if (tipoSeleccionadoId == null || isOtroAndEmpty) {
+                        Toast.makeText(context, R.string.error_campos_vacios, Toast.LENGTH_SHORT).show()
+                    } else {
+                        mostrarConfirmacion = true
+                    }
+                },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape    = RoundedCornerShape(16.dp),
                 colors   = ButtonDefaults.buttonColors(containerColor = DeepRed),
-                enabled  = puedeEnviar
+                enabled  = !cargando
             ) {
                 if (cargando) {
                     CircularProgressIndicator(modifier = Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)

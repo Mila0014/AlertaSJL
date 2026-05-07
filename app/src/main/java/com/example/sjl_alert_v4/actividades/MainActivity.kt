@@ -11,6 +11,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import android.widget.Toast
+import com.example.sjl_alert_v4.R
 import com.example.sjl_alert_v4.actividades.recuperacion.RecuperarContraPage
 import com.example.sjl_alert_v4.sharedPrefs.PreferenceManager
 import com.example.sjl_alert_v4.ui.theme.SJL_Alert_v4Theme
@@ -105,6 +107,7 @@ fun AppNavigation() {
                 onBack = { },
                 onLogout = {
                     prefManager.cerrarSesion()
+                    Toast.makeText(context, R.string.sesion_cerrada, Toast.LENGTH_SHORT).show()
                     navController.navigate("cerrando_sesion") { popUpTo(0) { inclusive = true } }
                 },
                 onNavigateToSettings = { navController.navigate("settings") },
@@ -120,6 +123,7 @@ fun AppNavigation() {
             ReportsPage(
                 onLogout = {
                     prefManager.cerrarSesion()
+                    Toast.makeText(context, R.string.sesion_cerrada, Toast.LENGTH_SHORT).show()
                     navController.navigate("cerrando_sesion") { popUpTo(0) { inclusive = true } }
                 },
                 onNavigateToDirectory = { navController.navigate("directory") },
@@ -160,6 +164,7 @@ fun AppNavigation() {
                 onNavigateToReports = { navController.navigate("reports") },
                 onLogout = {
                     prefManager.cerrarSesion()
+                    Toast.makeText(context, R.string.sesion_cerrada, Toast.LENGTH_SHORT).show()
                     navController.navigate("cerrando_sesion") { popUpTo(0) { inclusive = true } }
                 },
                 onNavigateToSettings = { navController.navigate("settings") }
@@ -171,6 +176,7 @@ fun AppNavigation() {
                 onBack = { navController.popBackStack() },
                 onLogout = {
                     prefManager.cerrarSesion()
+                    Toast.makeText(context, R.string.sesion_cerrada, Toast.LENGTH_SHORT).show()
                     navController.navigate("cerrando_sesion") { popUpTo(0) { inclusive = true } }
                 },
                 onThemeChanged = {

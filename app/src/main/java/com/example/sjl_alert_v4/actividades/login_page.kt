@@ -31,6 +31,7 @@ import com.example.sjl_alert_v4.R
 import com.example.sjl_alert_v4.modelos.AppDatabase
 import com.example.sjl_alert_v4.ui.theme.*
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
