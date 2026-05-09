@@ -12,7 +12,8 @@ data class IncidenciaEntity(
     val ubicacion: String = "",
     val latitud: Double? = null,
     val longitud: Double? = null,
-    val evidencias: String = "",   // URIs separadas por coma
+    val evidencias: String = "",        // URIs múltiples separadas por coma
+    val imagenUri: String? = null,      // Primera imagen seleccionada (CP-09.3: null si no hay imagen)
     val fecha: Long = System.currentTimeMillis(),
     val estado: String = "PENDIENTE",
     val usuarioId: Int = 0
