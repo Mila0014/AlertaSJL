@@ -1,7 +1,9 @@
 package com.example.sjl_alert_v4.actividades
 
+import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -35,19 +37,20 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.FileProvider
+import androidx.core.content.ContextCompat
+import coil.compose.rememberAsyncImagePainter
 import com.example.sjl_alert_v4.R
 import com.example.sjl_alert_v4.modelos.AppDatabase
 import com.example.sjl_alert_v4.modelos.IncidenciaEntity
 import com.example.sjl_alert_v4.sharedPrefs.PreferenceManager
 import com.example.sjl_alert_v4.ui.theme.*
+import com.example.sjl_alert_v4.utilidades.MediaHelper
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.launch
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
-import java.io.File
 import java.util.Locale
 import java.util.UUID
 
@@ -83,16 +86,17 @@ fun ReportsPage(
     val scope       = rememberCoroutineScope()
     val db          = remember { AppDatabase.getInstance(context) }
     val prefManager = remember { PreferenceManager(context) }
+    val mediaHelper = remember { MediaHelper(context) }
 
     val primaryColor          = MaterialTheme.colorScheme.primary
     val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     // ── Strings capturados para usar en lambdas/coroutines ────────────────
-    val strAlertaEnviada     = stringResource(R.string.alerta_enviada)
-    val strErrorGuardar      = stringResource(R.string.error_guardar)
-    val strObteniendoUbic    = stringResource(R.string.obteniendo_ubicacion)
-    val strUbicacionActual   = "Ubicación actual"
-    val strPermisoDenegado   = "Permiso de ubicación no concedido"
+    val strAlertaEnviada  = stringResource(R.string.alerta_enviada)
+    val strErrorGuardar   = stringResource(R.string.error_guardar)
+    val strObteniendoUbic = stringResource(R.string.obteniendo_ubicacion)
+    val strUbicacionActual = "Ubicación actual"
+    val strPermisoDenegado = "Permiso de ubicación no concedido"
 
     // ── Tipos de incidencia (localizados) ─────────────────────────────────
     val tipos = listOf(
@@ -119,24 +123,57 @@ fun ReportsPage(
     var geoPoint by remember { mutableStateOf<GeoPoint?>(null) }
     var mapView  by remember { mutableStateOf<MapView?>(null) }
 
-    // ── Launchers ──────────────────────────────────────────────────────────
+    // ── URI temporal para foto de cámara ───────────────────────────────────
+    var fotoUri by remember { mutableStateOf<Uri?>(null) }
+
+    // ── Launcher: galería (múltiples imágenes) ─────────────────────────────
+    // CP-09.1: Al seleccionar de galería agrega las URIs y muestra vista previa
     val galeriaLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetMultipleContents()
-    ) { uris -> urisSeleccionadas = urisSeleccionadas + uris }
+    ) { uris ->
+        urisSeleccionadas = urisSeleccionadas + uris
+    }
 
-    var fotoUri by remember { mutableStateOf<Uri?>(null) }
+    // ── Launcher: cámara ───────────────────────────────────────────────────
+    // CP-09.2: Al tomar foto exitosa agrega la URI y muestra vista previa
     val camaraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
-    ) { exito -> if (exito) fotoUri?.let { uri -> urisSeleccionadas = urisSeleccionadas + uri } }
+    ) { exito ->
+        if (exito) fotoUri?.let { uri -> urisSeleccionadas = urisSeleccionadas + uri }
+    }
 
+    // ── Launcher: permiso CÁMARA ───────────────────────────────────────────
+    // CP-09.4: Si se deniega, muestra mensaje y NO abre la cámara
     val permisoCamaraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { concedido ->
         if (concedido) {
-            val archivo = File(context.cacheDir, "foto_${System.currentTimeMillis()}.jpg")
-            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", archivo)
+            val archivo = mediaHelper.createImageFile()
+            val uri     = mediaHelper.getUriForFile(archivo)
             fotoUri = uri
             camaraLauncher.launch(uri)
+        } else {
+            Toast.makeText(
+                context,
+                "Permiso de cámara denegado. Actívalo en Ajustes del dispositivo.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    // ── Launcher: permiso ALMACENAMIENTO ──────────────────────────────────
+    // CP-09.5: Si se deniega, muestra mensaje y NO abre la galería
+    val permisoAlmacenamientoLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        if (concedido) {
+            galeriaLauncher.launch("image/*")
+        } else {
+            Toast.makeText(
+                context,
+                "Permiso de almacenamiento denegado. Actívalo en Ajustes del dispositivo.",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
@@ -172,7 +209,41 @@ fun ReportsPage(
         }
     }
 
+    // ── Función: abrir galería con verificación de permiso ─────────────────
+    // CP-09.1 + CP-09.5
+    fun abrirGaleriaConPermiso() {
+        val permiso = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            android.Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            android.Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+        val estado = ContextCompat.checkSelfPermission(context, permiso)
+        if (estado == PackageManager.PERMISSION_GRANTED) {
+            galeriaLauncher.launch("image/*")
+        } else {
+            permisoAlmacenamientoLauncher.launch(permiso)
+        }
+    }
+
+    // ── Función: abrir cámara con verificación de permiso ─────────────────
+    // CP-09.2 + CP-09.4
+    fun abrirCamaraConPermiso() {
+        val estado = ContextCompat.checkSelfPermission(
+            context, android.Manifest.permission.CAMERA
+        )
+        if (estado == PackageManager.PERMISSION_GRANTED) {
+            val archivo = mediaHelper.createImageFile()
+            val uri     = mediaHelper.getUriForFile(archivo)
+            fotoUri = uri
+            camaraLauncher.launch(uri)
+        } else {
+            permisoCamaraLauncher.launch(android.Manifest.permission.CAMERA)
+        }
+    }
+
     // ── Guardar en Room ────────────────────────────────────────────────────
+    // CP-09.1 / CP-09.2: guarda evidencias e imagenUri
+    // CP-09.3: imagenUri = null si no hay imágenes seleccionadas
     fun guardarReporte() {
         scope.launch {
             cargando = true
@@ -186,6 +257,7 @@ fun ReportsPage(
                     latitud     = geoPoint?.latitude,
                     longitud    = geoPoint?.longitude,
                     evidencias  = urisSeleccionadas.joinToString(",") { it.toString() },
+                    imagenUri   = urisSeleccionadas.firstOrNull()?.toString(), // null si no hay imagen
                     fecha       = System.currentTimeMillis(),
                     estado      = "PENDIENTE",
                     usuarioId   = usuarioId
@@ -381,38 +453,95 @@ fun ReportsPage(
             Spacer(modifier = Modifier.height(12.dp))
 
             Row(modifier = Modifier.fillMaxWidth()) {
+                // CP-09.1 + CP-09.5: Galería con verificación de permiso
                 BotonEvidencia(
                     icono    = Icons.Default.Upload,
                     etiqueta = stringResource(R.string.subir_foto_video),
                     modifier = Modifier.weight(1f),
-                    onClick  = { galeriaLauncher.launch("image/*") }
+                    onClick  = { abrirGaleriaConPermiso() }
                 )
                 Spacer(modifier = Modifier.width(16.dp))
+                // CP-09.2 + CP-09.4: Cámara con verificación de permiso
                 BotonEvidencia(
                     icono    = Icons.Default.CameraAlt,
                     etiqueta = stringResource(R.string.tomar_foto),
                     modifier = Modifier.weight(1f),
-                    onClick  = {
-                        permisoCamaraLauncher.launch(android.Manifest.permission.CAMERA)
-                    }
+                    onClick  = { abrirCamaraConPermiso() }
                 )
             }
 
+            // CP-09.1 / CP-09.2: Vista previa de imágenes seleccionadas
+            // CP-09.3: No se muestra nada si urisSeleccionadas está vacío
             AnimatedVisibility(visible = urisSeleccionadas.isNotEmpty()) {
-                Row(
-                    modifier = Modifier.padding(top = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null,
-                        tint = Color(0xFF2E7D32), modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(R.string.archivos_adjuntos, urisSeleccionadas.size),
-                        fontSize = 14.sp, color = Color(0xFF2E7D32), fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    TextButton(onClick = { urisSeleccionadas = emptyList() }) {
-                        Text(stringResource(R.string.quitar_todo), color = DeepRed, fontSize = 13.sp)
+                Column(modifier = Modifier.padding(top = 12.dp)) {
+
+                    // Contador + botón quitar todo
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = Color(0xFF2E7D32),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(R.string.archivos_adjuntos, urisSeleccionadas.size),
+                            fontSize = 14.sp,
+                            color = Color(0xFF2E7D32),
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        TextButton(onClick = { urisSeleccionadas = emptyList() }) {
+                            Text(stringResource(R.string.quitar_todo), color = DeepRed, fontSize = 13.sp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Grid 2 columnas con vista previa real de imágenes
+                    urisSeleccionadas.chunked(2).forEach { fila ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            fila.forEach { uri ->
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(120.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                ) {
+                                    // Vista previa de la imagen
+                                    Image(
+                                        painter = rememberAsyncImagePainter(uri),
+                                        contentDescription = "Vista previa",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    // Botón eliminar imagen individual
+                                    IconButton(
+                                        onClick  = { urisSeleccionadas = urisSeleccionadas - uri },
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .size(28.dp)
+                                            .background(
+                                                Color.Black.copy(alpha = 0.55f),
+                                                RoundedCornerShape(50)
+                                            )
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = "Quitar imagen",
+                                            tint     = Color.White,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            // Relleno si la fila tiene 1 sola imagen
+                            if (fila.size == 1) Spacer(modifier = Modifier.weight(1f))
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
             }
@@ -561,7 +690,7 @@ private fun BotonEvidencia(icono: ImageVector, etiqueta: String, modifier: Modif
 
 // ── TopHeader ─────────────────────────────────────────────────────────────────
 @Composable
-fun TopHeader(onLogout: () -> Unit, onNavigateToSettings: () -> Unit) {
+fun TopHeader(onLogout: () -> Unit, onNavigateToSettings: () -> Unit, onNavigateToCrud: () -> Unit = {}) {
     val primaryColor          = MaterialTheme.colorScheme.primary
     val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
     val surfaceColor          = MaterialTheme.colorScheme.surface
@@ -611,6 +740,11 @@ fun TopHeader(onLogout: () -> Unit, onNavigateToSettings: () -> Unit) {
             Text(stringResource(R.string.sjl_alerta_header), fontWeight = FontWeight.Bold, fontSize = 20.sp, color = primaryColor)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
+            // Botón CRUD — lista de incidencias
+            IconButton(onClick = onNavigateToCrud) {
+                Icon(Icons.Default.List, contentDescription = "Gestionar incidencias",
+                    tint = primaryColor)
+            }
             Icon(Icons.Default.NotificationsNone, contentDescription = null, tint = onSurfaceVariantColor)
             Spacer(modifier = Modifier.width(16.dp))
             IconButton(onClick = { mostrarDialogo = true }) {
