@@ -112,7 +112,8 @@ fun AppNavigation() {
                 onNavigateToDirectory = { navController.navigate("directory") },
                 onVerDetalles = { id ->
                     navController.navigate("reporte_detalles/$id")
-                }
+                },
+                onNavigateToCrud = { navController.navigate("crud") }
             )
         }
 
@@ -187,5 +188,9 @@ fun AppNavigation() {
                 }
             )
         }
+        composable("crud") {
+            CrudIncidenciasPage(onBack = { navController.popBackStack() })
+        }
     }
+
 }

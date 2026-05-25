@@ -33,7 +33,8 @@ fun MisReportesPage(
     onNavigateToSettings: () -> Unit,
     onNuevoReporte: () -> Unit,
     onNavigateToDirectory: () -> Unit = {},
-    onVerDetalles: (String) -> Unit = {}
+    onVerDetalles: (String) -> Unit = {},
+    onNavigateToCrud: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val db = remember { AppDatabase.getInstance(context) }
@@ -51,7 +52,11 @@ fun MisReportesPage(
 
     Scaffold(
         topBar = {
-            TopHeader(onLogout = onLogout, onNavigateToSettings = onNavigateToSettings)
+            TopHeader(
+                onLogout = onLogout,
+                onNavigateToSettings = onNavigateToSettings,
+                onNavigateToCrud = onNavigateToCrud
+            )
         },
         bottomBar = {
             BottomNavigationBar(
