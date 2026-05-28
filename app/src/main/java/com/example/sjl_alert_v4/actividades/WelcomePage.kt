@@ -26,6 +26,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.example.sjl_alert_v4.R
+import com.example.sjl_alert_v4.modelos.AppDatabase
+import com.example.sjl_alert_v4.modelos.IncidenciaRepository
 
 @Composable
 fun WelcomePage(
@@ -34,6 +36,9 @@ fun WelcomePage(
     val context = LocalContext.current
     val prefManager = remember { PreferenceManager(context) }
     val nombre = remember { prefManager.getSesionNombre() }
+    val usuarioId = remember { prefManager.getSesionUsuarioId() }
+    val db = remember { AppDatabase.getInstance(context) }
+    val repo = remember { IncidenciaRepository(db.incidenciaDao()) }
 
     val primaryColor = MaterialTheme.colorScheme.primary
     val backgroundColor = MaterialTheme.colorScheme.background
@@ -42,11 +47,18 @@ fun WelcomePage(
     // Animación de escala del logo
     val scale = remember { Animatable(0.5f) }
     LaunchedEffect(Unit) {
+        // ── SINCRONIZACIÓN INICIAL ──────────────────────────────────────────
+        // Aprovechamos la pantalla de bienvenida para descargar los reportes
+        // del usuario desde Supabase si es una reinstalación o nueva sesión.
+        if (usuarioId != -1) {
+            repo.sincronizarConSupabase(usuarioId)
+        }
+
         scale.animateTo(
             targetValue = 1f,
             animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
         )
-        delay(2500)
+        delay(1500)
         onContinue()
     }
 

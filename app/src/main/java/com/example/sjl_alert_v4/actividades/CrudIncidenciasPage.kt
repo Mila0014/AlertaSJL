@@ -1,11 +1,12 @@
 package com.example.sjl_alert_v4.actividades
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -50,10 +51,10 @@ fun CrudIncidenciasPage(onBack: () -> Unit) {
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // ── Sincronizar con Azure al abrir ────────────────────────────────────
+    // ── Sincronizar con Supabase al abrir ────────────────────────────────────
     LaunchedEffect(Unit) {
         cargando = true
-        val resultado = repo.sincronizarDesdeAzure(usuarioId)
+        val resultado = repo.sincronizarConSupabase(usuarioId)
         cargando = false
         if (resultado is ResultadoApi.Error) {
             snackbarHostState.showSnackbar(resultado.mensaje)
@@ -73,8 +74,11 @@ fun CrudIncidenciasPage(onBack: () -> Unit) {
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver",
-                            tint = primaryColor)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = primaryColor,
+                        )
                     }
                 },
                 actions = {
@@ -82,10 +86,10 @@ fun CrudIncidenciasPage(onBack: () -> Unit) {
                     IconButton(onClick = {
                         scope.launch {
                             cargando = true
-                            val r = repo.sincronizarDesdeAzure(usuarioId)
+                            val r = repo.sincronizarConSupabase(usuarioId)
                             cargando = false
                             mostrarMensaje(
-                                if (r is ResultadoApi.Exito) "✅ Sincronizado con Azure"
+                                if (r is ResultadoApi.Exito) "✅ Sincronizado con Supabase"
                                 else (r as ResultadoApi.Error).mensaje
                             )
                         }
@@ -113,9 +117,12 @@ fun CrudIncidenciasPage(onBack: () -> Unit) {
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(Icons.Default.Assignment, contentDescription = null,
+                    Icon(
+                        Icons.AutoMirrored.Filled.Assignment,
+                        contentDescription = null,
                         modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text("No tienes incidencias aún", fontSize = 16.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -129,9 +136,8 @@ fun CrudIncidenciasPage(onBack: () -> Unit) {
                     items(incidencias, key = { it.id }) { incidencia ->
                         TarjetaIncidenciaCrud(
                             incidencia = incidencia,
-                            onEditar   = { incidenciaAEditar = incidencia },
-                            onEliminar = { incidenciaAEliminar = incidencia }
-                        )
+                            onEditar   = { incidenciaAEditar = incidencia }
+                        ) { incidenciaAEliminar = incidencia }
                     }
                 }
             }
@@ -142,20 +148,19 @@ fun CrudIncidenciasPage(onBack: () -> Unit) {
     incidenciaAEditar?.let { inc ->
         DialogoEditar(
             incidencia = inc,
-            onDismiss  = { incidenciaAEditar = null },
-            onGuardar  = { incidenciaEditada ->
-                scope.launch {
-                    cargando = true
-                    val r = repo.actualizar(incidenciaEditada)
-                    cargando = false
-                    incidenciaAEditar = null
-                    mostrarMensaje(
-                        if (r is ResultadoApi.Exito) "✅ Actualizado correctamente"
-                        else (r as ResultadoApi.Error).mensaje
-                    )
-                }
+            onDismiss  = { incidenciaAEditar = null }
+        ) { incidenciaEditada ->
+            scope.launch {
+                cargando = true
+                val r = repo.actualizar(incidenciaEditada)
+                cargando = false
+                incidenciaAEditar = null
+                mostrarMensaje(
+                    if (r is ResultadoApi.Exito) "✅ Actualizado correctamente"
+                    else (r as ResultadoApi.Error).mensaje
+                )
             }
-        )
+        }
     }
 
     // ── Diálogo: Confirmar eliminación ────────────────────────────────────
@@ -301,6 +306,7 @@ private fun TarjetaIncidenciaCrud(
 }
 
 // ── Diálogo de edición ────────────────────────────────────────────────────────
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DialogoEditar(
     incidencia: IncidenciaEntity,

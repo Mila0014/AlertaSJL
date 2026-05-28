@@ -5,29 +5,29 @@ import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
 
-interface IncidenciaApiService {
+interface SupabaseApiService {
 
-    @POST("api/incidencias")
+    @POST("rest/v1/incidencias")
     suspend fun crear(
         @Body incidencia: IncidenciaDto,
     ): Response<ResponseBody>
 
-    @GET("api/incidencias")
+    @GET("rest/v1/incidencias?select=*")
     suspend fun obtenerTodas(): Response<List<IncidenciaDto>>
 
-    @GET("api/incidencias/usuario/{usuarioId}")
+    @GET("rest/v1/incidencias?select=*")
     suspend fun obtenerPorUsuario(
-        @Path("usuarioId") usuarioId: Int
+        @Query("usuarioId") usuarioIdFilter: String, // Ej: "eq.12"
     ): Response<List<IncidenciaDto>>
 
-    @PUT("api/incidencias/{id}")
+    @PATCH("rest/v1/incidencias")
     suspend fun actualizar(
-        @Path("id") id: String,
+        @Query("id") idFilter: String, // Ej: "eq.uuid"
         @Body incidencia: IncidenciaDto
     ): Response<ResponseBody>
 
-    @DELETE("api/incidencias/{id}")
+    @DELETE("rest/v1/incidencias")
     suspend fun eliminar(
-        @Path("id") id: String
+        @Query("id") idFilter: String // Ej: "eq.uuid"
     ): Response<ResponseBody>
 }

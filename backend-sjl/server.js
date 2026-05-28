@@ -1,5 +1,5 @@
 const express = require("express");
-const sql     = require("mssql");
+const { Pool } = require("pg");
 const cors    = require("cors");
 require("dotenv").config();
 
@@ -7,49 +7,53 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ── Configuración Azure SQL ────────────────────────────────────────────────
-const dbConfig = {
-  user:     process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  server:   process.env.DB_SERVER,
-  database: process.env.DB_NAME,
-  port:     parseInt(process.env.DB_PORT) || 1433,
-  options: {
-    encrypt:                true,   // obligatorio en Azure SQL
-    trustServerCertificate: false
-  }
-};
+// ── Configuración Supabase / PostgreSQL ──────────────────────────────────────
+const poolConfig = process.env.DATABASE_URL
+  ? { connectionString: process.env.DATABASE_URL }
+  : {
+      user:     process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      host:     process.env.DB_SERVER || process.env.DB_HOST,
+      database: process.env.DB_NAME,
+      port:     parseInt(process.env.DB_PORT) || 5432,
+    };
 
-// Pool de conexión reutilizable
-let pool;
-async function getPool() {
-  if (!pool) pool = await sql.connect(dbConfig);
-  return pool;
+// Habilitar SSL para conexiones remotas (ej: Supabase)
+if (
+  poolConfig.connectionString &&
+  !poolConfig.connectionString.includes("localhost") &&
+  !poolConfig.connectionString.includes("127.0.0.1")
+) {
+  poolConfig.ssl = { rejectUnauthorized: false };
+} else if (
+  poolConfig.host &&
+  poolConfig.host !== "localhost" &&
+  poolConfig.host !== "127.0.0.1"
+) {
+  poolConfig.ssl = { rejectUnauthorized: false };
 }
+
+const pool = new Pool(poolConfig);
 
 // ── Crear tabla si no existe (se ejecuta al iniciar) ──────────────────────
 async function crearTablaIncidencias() {
   try {
-    const p = await getPool();
-    await p.request().query(`
-      IF NOT EXISTS (
-        SELECT * FROM sysobjects WHERE name='incidencias' AND xtype='U'
-      )
-      CREATE TABLE incidencias (
-        id          NVARCHAR(50)   PRIMARY KEY,
-        tipo        NVARCHAR(100)  NOT NULL,
-        descripcion NVARCHAR(500)  DEFAULT '',
-        ubicacion   NVARCHAR(300)  DEFAULT '',
-        latitud     FLOAT          NULL,
-        longitud    FLOAT          NULL,
-        evidencias  NVARCHAR(MAX)  DEFAULT '',
-        imagenUri   NVARCHAR(500)  NULL,
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS public.incidencias (
+        id          VARCHAR(50)   PRIMARY KEY,
+        tipo        VARCHAR(100)  NOT NULL,
+        descripcion VARCHAR(500)  DEFAULT '',
+        ubicacion   VARCHAR(300)  DEFAULT '',
+        latitud     DOUBLE PRECISION NULL,
+        longitud    DOUBLE PRECISION NULL,
+        evidencias  TEXT          DEFAULT '',
+        "imagenUri"   VARCHAR(500)  NULL,
         fecha       BIGINT         DEFAULT 0,
-        estado      NVARCHAR(50)   DEFAULT 'PENDIENTE',
-        usuarioId   INT            DEFAULT 0
+        estado      VARCHAR(50)   DEFAULT 'PENDIENTE',
+        "usuarioId"   INT            DEFAULT 0
       )
     `);
-    console.log("✅ Tabla incidencias lista");
+    console.log("✅ Tabla incidencias lista en PostgreSQL / Supabase");
   } catch (err) {
     console.error("❌ Error creando tabla:", err.message);
   }
@@ -67,28 +71,28 @@ app.post("/api/incidencias", async (req, res) => {
       return res.status(400).json({ error: "id y tipo son obligatorios" });
     }
 
-    const p = await getPool();
-    await p.request()
-      .input("id",          sql.NVarChar(50),  id)
-      .input("tipo",        sql.NVarChar(100), tipo)
-      .input("descripcion", sql.NVarChar(500), descripcion || "")
-      .input("ubicacion",   sql.NVarChar(300), ubicacion   || "")
-      .input("latitud",     sql.Float,         latitud     ?? null)
-      .input("longitud",    sql.Float,         longitud    ?? null)
-      .input("evidencias",  sql.NVarChar(sql.MAX), evidencias || "")
-      .input("imagenUri",   sql.NVarChar(500), imagenUri   ?? null)
-      .input("fecha",       sql.BigInt,        fecha       || Date.now())
-      .input("estado",      sql.NVarChar(50),  estado      || "PENDIENTE")
-      .input("usuarioId",   sql.Int,           usuarioId   || 0)
-      .query(`
-        INSERT INTO incidencias
-          (id, tipo, descripcion, ubicacion, latitud, longitud,
-           evidencias, imagenUri, fecha, estado, usuarioId)
-        VALUES
-          (@id, @tipo, @descripcion, @ubicacion, @latitud, @longitud,
-           @evidencias, @imagenUri, @fecha, @estado, @usuarioId)
-      `);
+    const query = `
+      INSERT INTO incidencias
+        (id, tipo, descripcion, ubicacion, latitud, longitud,
+         evidencias, "imagenUri", fecha, estado, "usuarioId")
+      VALUES
+        ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    `;
+    const values = [
+      id,
+      tipo,
+      descripcion || "",
+      ubicacion || "",
+      latitud ?? null,
+      longitud ?? null,
+      evidencias || "",
+      imagenUri ?? null,
+      fecha || Date.now(),
+      estado || "PENDIENTE",
+      usuarioId || 0
+    ];
 
+    await pool.query(query, values);
     res.status(201).json({ mensaje: "Incidencia creada", id });
   } catch (err) {
     console.error(err);
@@ -101,10 +105,8 @@ app.post("/api/incidencias", async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 app.get("/api/incidencias", async (req, res) => {
   try {
-    const p      = await getPool();
-    const result = await p.request()
-      .query("SELECT * FROM incidencias ORDER BY fecha DESC");
-    res.json(result.recordset);
+    const result = await pool.query("SELECT * FROM incidencias ORDER BY fecha DESC");
+    res.json(result.rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -116,15 +118,12 @@ app.get("/api/incidencias", async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 app.get("/api/incidencias/:id", async (req, res) => {
   try {
-    const p      = await getPool();
-    const result = await p.request()
-      .input("id", sql.NVarChar(50), req.params.id)
-      .query("SELECT * FROM incidencias WHERE id = @id");
+    const result = await pool.query("SELECT * FROM incidencias WHERE id = $1", [req.params.id]);
 
-    if (result.recordset.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: "Incidencia no encontrada" });
     }
-    res.json(result.recordset[0]);
+    res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -136,11 +135,11 @@ app.get("/api/incidencias/:id", async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 app.get("/api/incidencias/usuario/:usuarioId", async (req, res) => {
   try {
-    const p      = await getPool();
-    const result = await p.request()
-      .input("usuarioId", sql.Int, parseInt(req.params.usuarioId))
-      .query("SELECT * FROM incidencias WHERE usuarioId = @usuarioId ORDER BY fecha DESC");
-    res.json(result.recordset);
+    const result = await pool.query(
+      'SELECT * FROM incidencias WHERE "usuarioId" = $1 ORDER BY fecha DESC',
+      [parseInt(req.params.usuarioId)]
+    );
+    res.json(result.rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -155,31 +154,33 @@ app.put("/api/incidencias/:id", async (req, res) => {
     const { tipo, descripcion, ubicacion, latitud, longitud,
             evidencias, imagenUri, estado } = req.body;
 
-    const p = await getPool();
-    const result = await p.request()
-      .input("id",          sql.NVarChar(50),  req.params.id)
-      .input("tipo",        sql.NVarChar(100), tipo)
-      .input("descripcion", sql.NVarChar(500), descripcion || "")
-      .input("ubicacion",   sql.NVarChar(300), ubicacion   || "")
-      .input("latitud",     sql.Float,         latitud     ?? null)
-      .input("longitud",    sql.Float,         longitud    ?? null)
-      .input("evidencias",  sql.NVarChar(sql.MAX), evidencias || "")
-      .input("imagenUri",   sql.NVarChar(500), imagenUri   ?? null)
-      .input("estado",      sql.NVarChar(50),  estado      || "PENDIENTE")
-      .query(`
-        UPDATE incidencias SET
-          tipo        = @tipo,
-          descripcion = @descripcion,
-          ubicacion   = @ubicacion,
-          latitud     = @latitud,
-          longitud    = @longitud,
-          evidencias  = @evidencias,
-          imagenUri   = @imagenUri,
-          estado      = @estado
-        WHERE id = @id
-      `);
+    const query = `
+      UPDATE incidencias SET
+        tipo        = $2,
+        descripcion = $3,
+        ubicacion   = $4,
+        latitud     = $5,
+        longitud    = $6,
+        evidencias  = $7,
+        "imagenUri"   = $8,
+        estado      = $9
+      WHERE id = $1
+    `;
+    const values = [
+      req.params.id,
+      tipo,
+      descripcion || "",
+      ubicacion || "",
+      latitud ?? null,
+      longitud ?? null,
+      evidencias || "",
+      imagenUri ?? null,
+      estado || "PENDIENTE"
+    ];
 
-    if (result.rowsAffected[0] === 0) {
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: "Incidencia no encontrada" });
     }
     res.json({ mensaje: "Incidencia actualizada", id: req.params.id });
@@ -194,12 +195,9 @@ app.put("/api/incidencias/:id", async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 app.delete("/api/incidencias/:id", async (req, res) => {
   try {
-    const p      = await getPool();
-    const result = await p.request()
-      .input("id", sql.NVarChar(50), req.params.id)
-      .query("DELETE FROM incidencias WHERE id = @id");
+    const result = await pool.query("DELETE FROM incidencias WHERE id = $1", [req.params.id]);
 
-    if (result.rowsAffected[0] === 0) {
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: "Incidencia no encontrada" });
     }
     res.json({ mensaje: "Incidencia eliminada", id: req.params.id });
@@ -210,7 +208,7 @@ app.delete("/api/incidencias/:id", async (req, res) => {
 });
 
 // ── Health check ───────────────────────────────────────────────────────────
-app.get("/", (req, res) => res.json({ estado: "API SJL Alerta funcionando ✅" }));
+app.get("/", (req, res) => res.json({ estado: "API SJL Alerta funcionando con Supabase / Postgres ✅" }));
 
 // ── Iniciar servidor ───────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;

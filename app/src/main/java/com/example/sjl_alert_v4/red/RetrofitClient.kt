@@ -9,7 +9,7 @@ object RetrofitClient {
     // PASO 2: Reemplaza esta URL con la URL de tu Azure App Service
     // Formato: https://TU-APP.azurewebsites.net/
     // ─────────────────────────────────────────────────────────────────────
-    private const val BASE_URL = "https://alertasjl-avfpaae5befgh4be.canadacentral-01.azurewebsites.net/"
+    private const val BASE_URL = "https://sjl-alerta-yoel02.azurewebsites.net/"
 
     val incidenciaApi: IncidenciaApiService by lazy {
         Retrofit.Builder()

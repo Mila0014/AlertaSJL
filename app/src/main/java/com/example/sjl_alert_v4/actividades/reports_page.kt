@@ -42,6 +42,8 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.sjl_alert_v4.R
 import com.example.sjl_alert_v4.modelos.AppDatabase
 import com.example.sjl_alert_v4.modelos.IncidenciaEntity
+import com.example.sjl_alert_v4.modelos.IncidenciaRepository
+import com.example.sjl_alert_v4.modelos.ResultadoApi
 import com.example.sjl_alert_v4.sharedPrefs.PreferenceManager
 import com.example.sjl_alert_v4.ui.theme.*
 import com.example.sjl_alert_v4.utilidades.MediaHelper
@@ -85,6 +87,7 @@ fun ReportsPage(
     val context     = LocalContext.current
     val scope       = rememberCoroutineScope()
     val db          = remember { AppDatabase.getInstance(context) }
+    val repo        = remember { IncidenciaRepository(db.incidenciaDao()) }
     val prefManager = remember { PreferenceManager(context) }
     val mediaHelper = remember { MediaHelper(context) }
 
@@ -241,7 +244,7 @@ fun ReportsPage(
         }
     }
 
-    // ── Guardar en Room ────────────────────────────────────────────────────
+    // ── Guardar en Room y Supabase ──────────────────────────────────────────
     // CP-09.1 / CP-09.2: guarda evidencias e imagenUri
     // CP-09.3: imagenUri = null si no hay imágenes seleccionadas
     fun guardarReporte() {
@@ -262,10 +265,19 @@ fun ReportsPage(
                     estado      = "PENDIENTE",
                     usuarioId   = usuarioId
                 )
-                db.incidenciaDao().insertar(incidencia)
-                Toast.makeText(context, strAlertaEnviada, Toast.LENGTH_SHORT).show()
-                cargando = false
-                onNavigateToMisReportes()
+                
+                // Usamos el repositorio para guardar localmente y en el servidor
+                val resultado = repo.crear(incidencia)
+                
+                if (resultado is ResultadoApi.Exito) {
+                    Toast.makeText(context, strAlertaEnviada, Toast.LENGTH_SHORT).show()
+                    cargando = false
+                    onNavigateToMisReportes()
+                } else {
+                    cargando = false
+                    val errorMsg = (resultado as ResultadoApi.Error).mensaje
+                    Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                }
             } catch (e: Exception) {
                 cargando = false
                 Toast.makeText(context, strErrorGuardar.format(e.message), Toast.LENGTH_LONG).show()
