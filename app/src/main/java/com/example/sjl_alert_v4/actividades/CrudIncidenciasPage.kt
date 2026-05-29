@@ -301,6 +301,7 @@ private fun TarjetaIncidenciaCrud(
 }
 
 // ── Diálogo de edición ────────────────────────────────────────────────────────
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DialogoEditar(
     incidencia: IncidenciaEntity,
