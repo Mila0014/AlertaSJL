@@ -130,7 +130,6 @@ fun ReportsPage(
     var fotoUri by remember { mutableStateOf<Uri?>(null) }
 
     // ── Launcher: galería (múltiples imágenes) ─────────────────────────────
-    // CP-09.1: Al seleccionar de galería agrega las URIs y muestra vista previa
     val galeriaLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetMultipleContents()
     ) { uris ->
@@ -138,7 +137,6 @@ fun ReportsPage(
     }
 
     // ── Launcher: cámara ───────────────────────────────────────────────────
-    // CP-09.2: Al tomar foto exitosa agrega la URI y muestra vista previa
     val camaraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { exito ->
@@ -146,7 +144,6 @@ fun ReportsPage(
     }
 
     // ── Launcher: permiso CÁMARA ───────────────────────────────────────────
-    // CP-09.4: Si se deniega, muestra mensaje y NO abre la cámara
     val permisoCamaraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { concedido ->
@@ -165,7 +162,6 @@ fun ReportsPage(
     }
 
     // ── Launcher: permiso ALMACENAMIENTO ──────────────────────────────────
-    // CP-09.5: Si se deniega, muestra mensaje y NO abre la galería
     val permisoAlmacenamientoLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { concedido ->
@@ -213,7 +209,6 @@ fun ReportsPage(
     }
 
     // ── Función: abrir galería con verificación de permiso ─────────────────
-    // CP-09.1 + CP-09.5
     fun abrirGaleriaConPermiso() {
         val permiso = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             android.Manifest.permission.READ_MEDIA_IMAGES
@@ -229,7 +224,6 @@ fun ReportsPage(
     }
 
     // ── Función: abrir cámara con verificación de permiso ─────────────────
-    // CP-09.2 + CP-09.4
     fun abrirCamaraConPermiso() {
         val estado = ContextCompat.checkSelfPermission(
             context, android.Manifest.permission.CAMERA
@@ -244,9 +238,7 @@ fun ReportsPage(
         }
     }
 
-    // ── Guardar en Room y Supabase ──────────────────────────────────────────
-    // CP-09.1 / CP-09.2: guarda evidencias e imagenUri
-    // CP-09.3: imagenUri = null si no hay imágenes seleccionadas
+    // ── Guardar en Room y sincronizar con el servidor ──────────────────────
     fun guardarReporte() {
         scope.launch {
             cargando = true
@@ -260,24 +252,22 @@ fun ReportsPage(
                     latitud     = geoPoint?.latitude,
                     longitud    = geoPoint?.longitude,
                     evidencias  = urisSeleccionadas.joinToString(",") { it.toString() },
-                    imagenUri   = urisSeleccionadas.firstOrNull()?.toString(), // null si no hay imagen
+                    imagenUri   = urisSeleccionadas.firstOrNull()?.toString(),
                     fecha       = System.currentTimeMillis(),
                     estado      = "PENDIENTE",
                     usuarioId   = usuarioId
                 )
-                
-                // Usamos el repositorio para guardar localmente y en el servidor
+
                 val resultado = repo.crear(incidencia)
-                
-                if (resultado is ResultadoApi.Exito) {
-                    Toast.makeText(context, strAlertaEnviada, Toast.LENGTH_SHORT).show()
-                    cargando = false
-                    onNavigateToMisReportes()
-                } else {
-                    cargando = false
-                    val errorMsg = (resultado as ResultadoApi.Error).mensaje
-                    Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+
+                val mensaje = when (resultado) {
+                    is ResultadoApi.Exito -> strAlertaEnviada
+                    is ResultadoApi.Error -> "Guardado local. Sin conexión: ${resultado.mensaje}"
                 }
+                Toast.makeText(context, mensaje, Toast.LENGTH_SHORT).show()
+                cargando = false
+                onNavigateToMisReportes()
+
             } catch (e: Exception) {
                 cargando = false
                 Toast.makeText(context, strErrorGuardar.format(e.message), Toast.LENGTH_LONG).show()
@@ -465,7 +455,6 @@ fun ReportsPage(
             Spacer(modifier = Modifier.height(12.dp))
 
             Row(modifier = Modifier.fillMaxWidth()) {
-                // CP-09.1 + CP-09.5: Galería con verificación de permiso
                 BotonEvidencia(
                     icono    = Icons.Default.Upload,
                     etiqueta = stringResource(R.string.subir_foto_video),
@@ -473,7 +462,6 @@ fun ReportsPage(
                     onClick  = { abrirGaleriaConPermiso() }
                 )
                 Spacer(modifier = Modifier.width(16.dp))
-                // CP-09.2 + CP-09.4: Cámara con verificación de permiso
                 BotonEvidencia(
                     icono    = Icons.Default.CameraAlt,
                     etiqueta = stringResource(R.string.tomar_foto),
@@ -482,12 +470,9 @@ fun ReportsPage(
                 )
             }
 
-            // CP-09.1 / CP-09.2: Vista previa de imágenes seleccionadas
-            // CP-09.3: No se muestra nada si urisSeleccionadas está vacío
             AnimatedVisibility(visible = urisSeleccionadas.isNotEmpty()) {
                 Column(modifier = Modifier.padding(top = 12.dp)) {
 
-                    // Contador + botón quitar todo
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Default.CheckCircle,
@@ -510,7 +495,6 @@ fun ReportsPage(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Grid 2 columnas con vista previa real de imágenes
                     urisSeleccionadas.chunked(2).forEach { fila ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -523,14 +507,12 @@ fun ReportsPage(
                                         .height(120.dp)
                                         .clip(RoundedCornerShape(10.dp))
                                 ) {
-                                    // Vista previa de la imagen
                                     Image(
                                         painter = rememberAsyncImagePainter(uri),
                                         contentDescription = "Vista previa",
                                         modifier = Modifier.fillMaxSize(),
                                         contentScale = ContentScale.Crop
                                     )
-                                    // Botón eliminar imagen individual
                                     IconButton(
                                         onClick  = { urisSeleccionadas = urisSeleccionadas - uri },
                                         modifier = Modifier
@@ -550,7 +532,6 @@ fun ReportsPage(
                                     }
                                 }
                             }
-                            // Relleno si la fila tiene 1 sola imagen
                             if (fila.size == 1) Spacer(modifier = Modifier.weight(1f))
                         }
                         Spacer(modifier = Modifier.height(8.dp))
@@ -752,7 +733,6 @@ fun TopHeader(onLogout: () -> Unit, onNavigateToSettings: () -> Unit, onNavigate
             Text(stringResource(R.string.sjl_alerta_header), fontWeight = FontWeight.Bold, fontSize = 20.sp, color = primaryColor)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            // Botón CRUD — lista de incidencias
             IconButton(onClick = onNavigateToCrud) {
                 Icon(Icons.Default.List, contentDescription = "Gestionar incidencias",
                     tint = primaryColor)
