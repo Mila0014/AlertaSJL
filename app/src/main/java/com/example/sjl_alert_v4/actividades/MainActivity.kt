@@ -11,13 +11,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.work.*
 import com.example.sjl_alert_v4.actividades.recuperacion.RecuperarContraPage
+import com.example.sjl_alert_v4.modelos.AppDatabase
 import com.example.sjl_alert_v4.sharedPrefs.PreferenceManager
 import com.example.sjl_alert_v4.ui.theme.SJL_Alert_v4Theme
+import com.example.sjl_alert_v4.workers.SyncWorker
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import com.example.sjl_alert_v4.modelos.AppDatabase
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
 
@@ -35,6 +38,21 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             AppDatabase.getInstance(this@MainActivity).openHelper.readableDatabase
         }
+
+        // ── WorkManager: sincronizar incidencias cuando haya internet ──────
+        val syncRequest = PeriodicWorkRequestBuilder<SyncWorker>(15, TimeUnit.MINUTES)
+            .setConstraints(
+                Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build()
+            )
+            .build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "sync_incidencias",
+            ExistingPeriodicWorkPolicy.KEEP,
+            syncRequest
+        )
 
         setContent {
             SJL_Alert_v4Theme {
@@ -62,7 +80,6 @@ fun AppNavigation() {
                     }
                 },
                 onRegisterClick = { navController.navigate("register") },
-                // ── NUEVO: navega a la pantalla de recuperar contraseña ──
                 onForgotPasswordClick = { navController.navigate("recuperar") }
             )
         }
@@ -99,7 +116,6 @@ fun AppNavigation() {
             )
         }
 
-        // ── INICIO: lista de reportes ──────────────────────────────────────────
         composable("home") {
             MisReportesPage(
                 onBack = { },
@@ -180,7 +196,6 @@ fun AppNavigation() {
             )
         }
 
-        // ── PANTALLA DE TRANSICIÓN: cerrando sesión ────────────────────────
         composable("cerrando_sesion") {
             CerrandoSesionPage(
                 onFinished = {
@@ -188,9 +203,9 @@ fun AppNavigation() {
                 }
             )
         }
+
         composable("crud") {
             CrudIncidenciasPage(onBack = { navController.popBackStack() })
         }
     }
-
 }

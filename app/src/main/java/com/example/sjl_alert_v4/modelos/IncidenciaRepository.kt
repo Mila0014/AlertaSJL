@@ -7,27 +7,53 @@ import kotlinx.coroutines.flow.Flow
 // Guarda en Room (local) Y sincroniza con Azure SQL (remoto)
 class IncidenciaRepository(private val dao: IncidenciaDao) {
 
-    // ── CAMINO A: Servidor Node.js (Express) en Azure App Service
     private val api = RetrofitClient.incidenciaApi
-
-    // ── CAMINO B: Conexión directa a Supabase REST API
-    // private val api = SupabaseClient.api
 
     // ── CREATE ────────────────────────────────────────────────────────────
     suspend fun crear(incidencia: IncidenciaEntity): ResultadoApi {
         return try {
-            // 1. Guarda en Room (local) inmediatamente
+            // 1. Guarda en Room inmediatamente con sincronizado = false
             dao.insertar(incidencia)
-            // 2. Sincroniza con Azure SQL (remoto)
+
+            // 2. Intenta subir a Azure
             val response = api.crear(incidencia.toDto())
             if (response.isSuccessful) {
-                ResultadoApi.Exito("Incidencia creada en Supabase")
+                // ✅ Subió a Azure — marcar como sincronizada
+                dao.marcarSincronizada(incidencia.id)
+                ResultadoApi.Exito("Incidencia creada en Azure")
             } else {
+                // ❌ Error API — queda pendiente para SyncWorker
                 ResultadoApi.Error("Error API: ${response.code()} ${response.message()}")
             }
         } catch (e: Exception) {
-            // Si falla la red, igual quedó guardado en Room
+            // ❌ Sin internet — queda en Room con sincronizado=false
+            // SyncWorker la subirá cuando vuelva el internet
             ResultadoApi.Error("Sin conexión. Guardado localmente: ${e.message}")
+        }
+    }
+
+    // ── SINCRONIZAR PENDIENTES ────────────────────────────────────────────
+    // Sube a Azure todas las incidencias que quedaron con sincronizado=false
+    suspend fun sincronizarPendientes(): ResultadoApi {
+        return try {
+            val pendientes = dao.obtenerNoSincronizadas()
+            if (pendientes.isEmpty()) return ResultadoApi.Exito("Todo sincronizado")
+
+            var enviadas = 0
+            pendientes.forEach { incidencia ->
+                try {
+                    val response = api.crear(incidencia.toDto())
+                    if (response.isSuccessful) {
+                        dao.marcarSincronizada(incidencia.id)
+                        enviadas++
+                    }
+                } catch (e: Exception) {
+                    // Sin internet — se reintentará después
+                }
+            }
+            ResultadoApi.Exito("Sincronizadas $enviadas de ${pendientes.size}")
+        } catch (e: Exception) {
+            ResultadoApi.Error("Error al sincronizar: ${e.message}")
         }
     }
 
@@ -35,7 +61,7 @@ class IncidenciaRepository(private val dao: IncidenciaDao) {
     fun obtenerPorUsuario(usuarioId: Int): Flow<List<IncidenciaEntity>> =
         dao.obtenerPorUsuario(usuarioId)
 
-    // ── READ — sincronizar desde Supabase ────────────────────────────────────
+    // ── READ — sincronizar desde Azure ────────────────────────────────────
     suspend fun sincronizarConAzure(usuarioId: Int): ResultadoApi {
         return try {
             val response = api.obtenerPorUsuario(usuarioId)
@@ -52,8 +78,8 @@ class IncidenciaRepository(private val dao: IncidenciaDao) {
         }
     }
 
-    // ── READ — obtener todas desde Supabase (para admin) ─────────────────────
-    suspend fun obtenerTodasDesdeSupabase(): ResultadoApi {
+    // ── READ — obtener todas desde Azure ──────────────────────────────────
+    suspend fun obtenerTodasDesdeAzure(): ResultadoApi {
         return try {
             val response = api.obtenerTodas()
             if (response.isSuccessful) {
@@ -73,6 +99,7 @@ class IncidenciaRepository(private val dao: IncidenciaDao) {
             dao.insertar(incidencia)
             val response = api.actualizar(incidencia.id, incidencia.toDto())
             if (response.isSuccessful) {
+                dao.marcarSincronizada(incidencia.id)
                 ResultadoApi.Exito("Actualizado en Azure")
             } else {
                 ResultadoApi.Error("Error API: ${response.code()}")
@@ -82,6 +109,7 @@ class IncidenciaRepository(private val dao: IncidenciaDao) {
         }
     }
 
+    // ── DELETE ────────────────────────────────────────────────────────────
     suspend fun eliminar(incidencia: IncidenciaEntity): ResultadoApi {
         return try {
             dao.eliminar(incidencia)

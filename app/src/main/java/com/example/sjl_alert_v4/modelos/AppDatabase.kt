@@ -10,7 +10,7 @@ import androidx.room.RoomDatabase
         Usuario::class,
         IncidenciaEntity::class
     ],
-    version = 4,          // ← incrementado de 3 a 4 para forzar recreación del schema
+    version = 5,          // ← incrementado de 4 a 5 por nuevo campo sincronizado
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
