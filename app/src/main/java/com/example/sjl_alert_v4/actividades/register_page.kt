@@ -26,10 +26,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sjl_alert_v4.R
-import com.example.sjl_alert_v4.modelos.AppDatabase
-import com.example.sjl_alert_v4.modelos.Usuario
+import com.example.sjl_alert_v4.red.RegistroRequest
+import com.example.sjl_alert_v4.red.RetrofitClient
 import com.example.sjl_alert_v4.ui.theme.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.security.MessageDigest
 
 // ----- Función utilitaria: hashea la contraseña con SHA-256 -----
@@ -82,7 +84,6 @@ fun RegisterPage(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val db = remember { AppDatabase.getInstance(context) }
 
     var nombre by remember { mutableStateOf("") }
     var apellido by remember { mutableStateOf("") }
@@ -546,44 +547,49 @@ fun RegisterPage(
                             }
                             if (errorMessage == null) {
                                 isLoading = true
-                                scope.launch {
+                                scope.launch(Dispatchers.IO) {
                                     try {
-                                        val existente = db.usuarioDao().buscarPorDniOCorreo(dni, correo)
-                                        if (existente != null) {
-                                            isLoading = false
-                                            errorMessage = if (existente.correo == correo.trim().lowercase()) {
-                                                "El correo ya está registrado"
-                                            } else {
-                                                "El DNI ya está registrado"
-                                            }
-                                            return@launch
-                                        }
-
-                                        val nuevoUsuario = Usuario(
-                                            nombre = nombre.trim(),
-                                            apellido = apellido.trim(),
-                                            dni = dni.trim(),
-                                            correo = correo.trim().lowercase(),
-                                            telefono = telefono.trim(),
-                                            direccion = direccion.trim(),
-                                            contrasena = hashSHA256(contrasena),
-                                            fechaNacimiento = fechaNacimiento
+                                        // Llamada a la API de Azure — registro de usuario
+                                        val response = RetrofitClient.usuarioApi.registro(
+                                            RegistroRequest(
+                                                nombre          = nombre.trim(),
+                                                apellido        = apellido.trim(),
+                                                dni             = dni.trim(),
+                                                correo          = correo.trim().lowercase(),
+                                                telefono        = telefono.trim(),
+                                                contrasena      = hashSHA256(contrasena),
+                                                direccion       = direccion.trim(),
+                                                fechaRegistro   = System.currentTimeMillis(),
+                                                fechaNacimiento = fechaNacimiento
+                                            )
                                         )
-
-                                        val id = db.usuarioDao().insertarUsuario(nuevoUsuario)
-                                        isLoading = false
-
-                                        if (id > 0) {
-                                            Toast.makeText(
-                                                context,
-                                                "¡Cuenta creada exitosamente!",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                            onRegisterSuccess()
+                                        withContext(Dispatchers.Main) {
+                                            isLoading = false
+                                            when (response.code()) {
+                                                201 -> {
+                                                    // Registro exitoso
+                                                    Toast.makeText(
+                                                        context,
+                                                        "¡Cuenta creada exitosamente!",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                    onRegisterSuccess()
+                                                }
+                                                409 -> {
+                                                    // DNI o correo ya registrado
+                                                    errorMessage = response.body()?.error
+                                                        ?: "El usuario ya está registrado"
+                                                }
+                                                else -> {
+                                                    errorMessage = "Error al registrar (código: ${response.code()})"
+                                                }
+                                            }
                                         }
                                     } catch (e: Exception) {
-                                        isLoading = false
-                                        errorMessage = "Error al guardar: ${e.message}"
+                                        withContext(Dispatchers.Main) {
+                                            isLoading = false
+                                            errorMessage = "Error: ${e.message ?: "Sin conexión. Verifica tu internet"}"
+                                        }
                                     }
                                 }
                             }

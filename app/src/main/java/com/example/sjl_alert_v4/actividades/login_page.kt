@@ -28,9 +28,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sjl_alert_v4.R
-import com.example.sjl_alert_v4.modelos.AppDatabase
+import com.example.sjl_alert_v4.red.LoginRequest
+import com.example.sjl_alert_v4.red.RetrofitClient
 import com.example.sjl_alert_v4.ui.theme.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
@@ -50,7 +53,6 @@ fun LoginPage(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val db = remember { AppDatabase.getInstance(context) }
 
     var dniOrEmail by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -347,55 +349,68 @@ fun LoginPage(
                                 else -> {
                                     isLoading = true
                                     errorMessage = null
-                                    scope.launch {
+                                    scope.launch(Dispatchers.IO) {
                                         try {
                                             // Verifica si está bloqueado
                                             if (prefManager.estaBloqueado()) {
                                                 val mins = prefManager.getTiempoBloqueoRestante() / 60000
                                                 val segs = (prefManager.getTiempoBloqueoRestante() % 60000) / 1000
-                                                isLoading = false
-                                                estaBloqueado = true
-                                                errorMessage = "Cuenta bloqueada. Intenta en ${mins}m ${segs}s"
-                                                return@launch
-                                            }
-                                            // Verifica si el usuario existe
-                                            val usuarioExiste = db.usuarioDao().buscarPorDniOCorreo(
-                                                dni = dniOrEmail.trim(),
-                                                correo = dniOrEmail.trim()
-                                            )
-                                            if (usuarioExiste == null) {
-                                                isLoading = false
-                                                errorMessage = "Usuario no encontrado"
-                                                return@launch
-                                            }
-                                            // Verifica la contraseña
-                                            val usuario = db.usuarioDao().login(
-                                                dniOCorreo = dniOrEmail.trim(),
-                                                contrasena = hashSHA256(password)
-                                            )
-                                            isLoading = false
-                                            if (usuario != null) {
-                                                prefManager.resetearIntentosFallidos()
-                                                prefManager.guardarSesion(
-                                                    usuarioId = usuario.id,
-                                                    nombre = usuario.nombre,
-                                                    correo = usuario.correo
-                                                )
-                                                onLoginSuccess()
-                                            } else {
-                                                prefManager.registrarIntentoFallido()
-                                                val intentos = prefManager.getIntentosFallidos()
-                                                errorMessage = if (prefManager.estaBloqueado()) {
+                                                withContext(Dispatchers.Main) {
+                                                    isLoading = false
                                                     estaBloqueado = true
-                                                    tiempoRestante = prefManager.getTiempoBloqueoRestante()
-                                                    "Cuenta bloqueada por 5 minutos"
-                                                } else {
-                                                    "Contraseña incorrecta. Intentos restantes: ${3 - intentos}"
+                                                    errorMessage = "Cuenta bloqueada. Intenta en ${mins}m ${segs}s"
+                                                }
+                                                return@launch
+                                            }
+                                            // Llamada a la API de Azure — login
+                                            val response = RetrofitClient.usuarioApi.login(
+                                                LoginRequest(
+                                                    dniOCorreo = dniOrEmail.trim(),
+                                                    contrasena = hashSHA256(password)
+                                                )
+                                            )
+                                            withContext(Dispatchers.Main) {
+                                                isLoading = false
+                                                when (response.code()) {
+                                                    200 -> {
+                                                        // Login exitoso
+                                                        val usuario = response.body()?.usuario
+                                                        if (usuario != null) {
+                                                            prefManager.resetearIntentosFallidos()
+                                                            prefManager.guardarSesion(
+                                                                usuarioId = usuario.id,
+                                                                nombre    = usuario.nombre,
+                                                                correo    = usuario.correo
+                                                            )
+                                                            onLoginSuccess()
+                                                        }
+                                                    }
+                                                    404 -> {
+                                                        // Usuario no encontrado
+                                                        errorMessage = "Usuario no encontrado"
+                                                    }
+                                                    401 -> {
+                                                        // Contraseña incorrecta
+                                                        prefManager.registrarIntentoFallido()
+                                                        val intentos = prefManager.getIntentosFallidos()
+                                                        errorMessage = if (prefManager.estaBloqueado()) {
+                                                            estaBloqueado = true
+                                                            tiempoRestante = prefManager.getTiempoBloqueoRestante()
+                                                            "Cuenta bloqueada por 5 minutos"
+                                                        } else {
+                                                            "Contraseña incorrecta. Intentos restantes: ${3 - intentos}"
+                                                        }
+                                                    }
+                                                    else -> {
+                                                        errorMessage = "Error al iniciar sesión (código: ${response.code()})"
+                                                    }
                                                 }
                                             }
                                         } catch (e: Exception) {
-                                            isLoading = false
-                                            errorMessage = "Error al iniciar sesión"
+                                            withContext(Dispatchers.Main) {
+                                                isLoading = false
+                                                errorMessage = "Error: ${e.message ?: "Sin conexión. Verifica tu internet"}"
+                                            }
                                         }
                                     }
                                 }

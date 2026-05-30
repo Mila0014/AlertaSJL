@@ -51,7 +51,7 @@ fun WelcomePage(
         // Aprovechamos la pantalla de bienvenida para descargar los reportes
         // del usuario desde Supabase si es una reinstalación o nueva sesión.
         if (usuarioId != -1) {
-            repo.sincronizarConSupabase(usuarioId)
+            repo.sincronizarConAzure(usuarioId)
         }
 
         scale.animateTo(

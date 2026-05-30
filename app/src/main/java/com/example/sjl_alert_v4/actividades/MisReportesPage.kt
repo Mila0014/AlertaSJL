@@ -48,7 +48,7 @@ fun MisReportesPage(
 
     // ── Sincronizar con Supabase al abrir ────────────────────────────────────
     LaunchedEffect(usuarioId) {
-        repo.sincronizarConSupabase(usuarioId)
+        repo.sincronizarConAzure(usuarioId)
     }
 
     val reportes by db.incidenciaDao()
@@ -107,11 +107,11 @@ fun MisReportesPage(
             if (reportes.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    Icons.AutoMirrored.Filled.Assignment, contentDescription = null,
-                    modifier = Modifier.size(72.dp),
-                    tint = onSurfaceVariantColor.copy(alpha = 0.4f)
-                )
+                        Icon(
+                            Icons.AutoMirrored.Filled.Assignment, contentDescription = null,
+                            modifier = Modifier.size(72.dp),
+                            tint = onSurfaceVariantColor.copy(alpha = 0.4f)
+                        )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             text = stringResource(R.string.sin_reportes),

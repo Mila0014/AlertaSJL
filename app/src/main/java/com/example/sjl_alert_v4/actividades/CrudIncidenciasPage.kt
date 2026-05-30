@@ -54,7 +54,7 @@ fun CrudIncidenciasPage(onBack: () -> Unit) {
     // ── Sincronizar con Supabase al abrir ────────────────────────────────────
     LaunchedEffect(Unit) {
         cargando = true
-        val resultado = repo.sincronizarConSupabase(usuarioId)
+        val resultado = repo.sincronizarConAzure(usuarioId)
         cargando = false
         if (resultado is ResultadoApi.Error) {
             snackbarHostState.showSnackbar(resultado.mensaje)
@@ -86,7 +86,7 @@ fun CrudIncidenciasPage(onBack: () -> Unit) {
                     IconButton(onClick = {
                         scope.launch {
                             cargando = true
-                            val r = repo.sincronizarConSupabase(usuarioId)
+                            val r = repo.sincronizarConAzure(usuarioId)
                             cargando = false
                             mostrarMensaje(
                                 if (r is ResultadoApi.Exito) "✅ Sincronizado con Supabase"

@@ -1,17 +1,17 @@
 package com.example.sjl_alert_v4.modelos
 
-import com.example.sjl_alert_v4.red.SupabaseClient
+import com.example.sjl_alert_v4.red.RetrofitClient
 import kotlinx.coroutines.flow.Flow
 
 // Repository: capa intermedia entre la UI y los datos
 // Guarda en Room (local) Y sincroniza con Azure SQL (remoto)
 class IncidenciaRepository(private val dao: IncidenciaDao) {
 
-    // ── CAMINO A: Servidor Node.js (Express) migrado a Supabase
-    // private val api = RetrofitClient.incidenciaApi
+    // ── CAMINO A: Servidor Node.js (Express) en Azure App Service
+    private val api = RetrofitClient.incidenciaApi
 
-    // ── CAMINO B: Conexión directa a Supabase REST API (descomenta si usas este camino)
-    private val api = SupabaseClient.api
+    // ── CAMINO B: Conexión directa a Supabase REST API
+    // private val api = SupabaseClient.api
 
     // ── CREATE ────────────────────────────────────────────────────────────
     suspend fun crear(incidencia: IncidenciaEntity): ResultadoApi {
@@ -36,23 +36,19 @@ class IncidenciaRepository(private val dao: IncidenciaDao) {
         dao.obtenerPorUsuario(usuarioId)
 
     // ── READ — sincronizar desde Supabase ────────────────────────────────────
-    suspend fun sincronizarConSupabase(usuarioId: Int): ResultadoApi {
+    suspend fun sincronizarConAzure(usuarioId: Int): ResultadoApi {
         return try {
-            // [Camino A]:
-            // val response = api.obtenerPorUsuario(usuarioId)
-            // [Camino B] (Descomenta si usas conexión directa a Supabase):
-            val response = api.obtenerPorUsuario("eq.$usuarioId")
-
+            val response = api.obtenerPorUsuario(usuarioId)
             if (response.isSuccessful) {
                 response.body()?.forEach { dto ->
-                    dao.insertar(dto.toEntity())   // upsert en Room
+                    dao.insertar(dto.toEntity())
                 }
-                ResultadoApi.Exito("Sincronizado con Supabase")
+                ResultadoApi.Exito("Sincronizado con Azure")
             } else {
                 ResultadoApi.Error("Error al sincronizar: ${response.code()}")
             }
         } catch (e: Exception) {
-            ResultadoApi.Error("Sin conexión a Supabase: ${e.message}")
+            ResultadoApi.Error("Sin conexión a Azure: ${e.message}")
         }
     }
 
@@ -74,16 +70,10 @@ class IncidenciaRepository(private val dao: IncidenciaDao) {
     // ── UPDATE ────────────────────────────────────────────────────────────
     suspend fun actualizar(incidencia: IncidenciaEntity): ResultadoApi {
         return try {
-            // 1. Actualiza en Room
-            dao.insertar(incidencia)   // REPLACE actualiza si ya existe
-            // 2. Sincroniza con Azure
-            // [Camino A]:
-            // val response = api.actualizar(incidencia.id, incidencia.toDto())
-            // [Camino B] (Descomenta si usas conexión directa a Supabase):
-            val response = api.actualizar("eq.${incidencia.id}", incidencia.toDto())
-
+            dao.insertar(incidencia)
+            val response = api.actualizar(incidencia.id, incidencia.toDto())
             if (response.isSuccessful) {
-                ResultadoApi.Exito("Actualizado en Supabase")
+                ResultadoApi.Exito("Actualizado en Azure")
             } else {
                 ResultadoApi.Error("Error API: ${response.code()}")
             }
@@ -92,19 +82,12 @@ class IncidenciaRepository(private val dao: IncidenciaDao) {
         }
     }
 
-    // ── DELETE ────────────────────────────────────────────────────────────
     suspend fun eliminar(incidencia: IncidenciaEntity): ResultadoApi {
         return try {
-            // 1. Elimina de Room
             dao.eliminar(incidencia)
-            // 2. Elimina de Azure
-            // [Camino A]:
-            // val response = api.eliminar(incidencia.id)
-            // [Camino B] (Descomenta si usas conexión directa a Supabase):
-            val response = api.eliminar("eq.${incidencia.id}")
-
+            val response = api.eliminar(incidencia.id)
             if (response.isSuccessful) {
-                ResultadoApi.Exito("Eliminado de Supabase")
+                ResultadoApi.Exito("Eliminado de Azure")
             } else {
                 ResultadoApi.Error("Error API: ${response.code()}")
             }

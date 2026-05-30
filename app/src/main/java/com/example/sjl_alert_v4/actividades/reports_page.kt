@@ -48,7 +48,11 @@ import com.example.sjl_alert_v4.sharedPrefs.PreferenceManager
 import com.example.sjl_alert_v4.ui.theme.*
 import com.example.sjl_alert_v4.utilidades.MediaHelper
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -176,11 +180,17 @@ fun ReportsPage(
         }
     }
 
-    // ── Obtener ubicación GPS ──────────────────────────────────────────────
+    // ── Obtener ubicación GPS en tiempo real ───────────────────────────────
     LaunchedEffect(Unit) {
         try {
             val fusedClient = LocationServices.getFusedLocationProviderClient(context)
-            fusedClient.lastLocation.addOnSuccessListener { loc ->
+            val cancellationTokenSource = com.google.android.gms.tasks.CancellationTokenSource()
+
+            // getCurrentLocation solicita ubicación fresca del GPS
+            fusedClient.getCurrentLocation(
+                com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
+                cancellationTokenSource.token
+            ).addOnSuccessListener { loc ->
                 if (loc != null) {
                     val punto = GeoPoint(loc.latitude, loc.longitude)
                     geoPoint = punto
@@ -190,11 +200,37 @@ fun ReportsPage(
                         val dirs = geocoder.getFromLocation(loc.latitude, loc.longitude, 1)
                         if (!dirs.isNullOrEmpty()) {
                             ubicacion = dirs[0].getAddressLine(0) ?: strUbicacionActual
+                        } else {
+                            ubicacion = "Lat: %.5f, Lng: %.5f".format(loc.latitude, loc.longitude)
                         }
                     } catch (e: Exception) {
                         ubicacion = "Lat: %.5f, Lng: %.5f".format(loc.latitude, loc.longitude)
                     }
+                } else {
+                    // Si getCurrentLocation falla, usa lastLocation como respaldo
+                    fusedClient.lastLocation.addOnSuccessListener { lastLoc ->
+                        if (lastLoc != null) {
+                            val punto = GeoPoint(lastLoc.latitude, lastLoc.longitude)
+                            geoPoint = punto
+                            mapView?.controller?.animateTo(punto)
+                            try {
+                                val geocoder = Geocoder(context, Locale("es", "PE"))
+                                val dirs = geocoder.getFromLocation(lastLoc.latitude, lastLoc.longitude, 1)
+                                if (!dirs.isNullOrEmpty()) {
+                                    ubicacion = dirs[0].getAddressLine(0) ?: strUbicacionActual
+                                } else {
+                                    ubicacion = "Lat: %.5f, Lng: %.5f".format(lastLoc.latitude, lastLoc.longitude)
+                                }
+                            } catch (e: Exception) {
+                                ubicacion = "Lat: %.5f, Lng: %.5f".format(lastLoc.latitude, lastLoc.longitude)
+                            }
+                        } else {
+                            ubicacion = strPermisoDenegado
+                        }
+                    }
                 }
+            }.addOnFailureListener {
+                ubicacion = strPermisoDenegado
             }
         } catch (e: SecurityException) {
             ubicacion = strPermisoDenegado
@@ -607,7 +643,30 @@ fun ReportsPage(
             },
             confirmButton = {
                 Button(
-                    onClick = { ubicacion = ubicacionTemporal; editandoUbicacion = false },
+                    onClick = {
+                        ubicacion = ubicacionTemporal
+                        editandoUbicacion = false
+                        // Convertir la dirección escrita a coordenadas GPS y mover el mapa
+                        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            try {
+                                val geocoder = Geocoder(context, Locale("es", "PE"))
+                                val resultados = geocoder.getFromLocationName(ubicacionTemporal.trim(), 1)
+                                if (!resultados.isNullOrEmpty()) {
+                                    val lat = resultados[0].latitude
+                                    val lng = resultados[0].longitude
+                                    val nuevoPunto = GeoPoint(lat, lng)
+                                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                        geoPoint = nuevoPunto
+                                        mapView?.controller?.animateTo(nuevoPunto)
+                                        mapView?.controller?.setZoom(17.5)
+                                        mapView?.invalidate()
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                // Si falla el geocoder, mantiene la ubicación de texto sin mover el mapa
+                            }
+                        }
+                    },
                     colors  = ButtonDefaults.buttonColors(containerColor = primaryColor)
                 ) { Text(stringResource(R.string.confirmar)) }
             },
