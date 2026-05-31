@@ -46,6 +46,7 @@ import com.example.sjl_alert_v4.modelos.IncidenciaRepository
 import com.example.sjl_alert_v4.modelos.ResultadoApi
 import com.example.sjl_alert_v4.sharedPrefs.PreferenceManager
 import com.example.sjl_alert_v4.ui.theme.*
+import com.example.sjl_alert_v4.utilidades.LocationHelper
 import com.example.sjl_alert_v4.utilidades.MediaHelper
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.launch
@@ -90,6 +91,7 @@ fun ReportsPage(
     val repo        = remember { IncidenciaRepository(db.incidenciaDao()) }
     val prefManager = remember { PreferenceManager(context) }
     val mediaHelper = remember { MediaHelper(context) }
+    val locationHelper = remember { LocationHelper(context) }
 
     val primaryColor          = MaterialTheme.colorScheme.primary
     val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -119,7 +121,11 @@ fun ReportsPage(
     var comentario          by remember { mutableStateOf("") }
     var cargando            by remember { mutableStateOf(false) }
     var mostrarConfirmacion by remember { mutableStateOf(false) }
-    var intentoEnvio        by remember { mutableStateOf(false) }  // ← NUEVO
+    var intentoEnvio        by remember { mutableStateOf(false) }
+
+    // ── Estado GPS — SIN DUPLICAR ──────────────────────────────────────────
+    var gpsDesactivado    by remember { mutableStateOf(false) }
+    var mostrarDialogoGps by remember { mutableStateOf(false) }
 
     // ── Mapa OSMDroid ──────────────────────────────────────────────────────
     var geoPoint by remember { mutableStateOf<GeoPoint?>(null) }
@@ -157,60 +163,25 @@ fun ReportsPage(
         else Toast.makeText(context, "Permiso de almacenamiento denegado. Actívalo en Ajustes.", Toast.LENGTH_LONG).show()
     }
 
-    // ── Obtener ubicación GPS ──────────────────────────────────────────────
-    val fusedClient = remember { LocationServices.getFusedLocationProviderClient(context) }
-
+    // ── Función: obtener ubicación usando LocationHelper ──────────────────
     fun obtenerUbicacionGps() {
-        if (!prefManager.isLocationSharingEnabled()) {
-            ubicacion = "Ubicación desactivada en ajustes"
-            return
-        }
-        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-            ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ubicacion = strPermisoDenegado
-            return
-        }
         ubicacion = strObteniendoUbic
-        try {
-            val cts = com.google.android.gms.tasks.CancellationTokenSource()
-            fusedClient.getCurrentLocation(
-                com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
-                cts.token
-            ).addOnSuccessListener { loc ->
-                if (loc != null) {
-                    val punto = GeoPoint(loc.latitude, loc.longitude)
-                    geoPoint = punto
-                    mapView?.controller?.animateTo(punto)
-                    try {
-                        val geocoder = Geocoder(context, Locale("es", "PE"))
-                        val dirs = geocoder.getFromLocation(loc.latitude, loc.longitude, 1)
-                        ubicacion = if (!dirs.isNullOrEmpty()) dirs[0].getAddressLine(0) ?: strUbicacionActual
-                        else "Lat: %.5f, Lng: %.5f".format(loc.latitude, loc.longitude)
-                    } catch (e: Exception) {
-                        ubicacion = "Lat: %.5f, Lng: %.5f".format(loc.latitude, loc.longitude)
-                    }
-                } else {
-                    fusedClient.lastLocation.addOnSuccessListener { lastLoc ->
-                        if (lastLoc != null) {
-                            val punto = GeoPoint(lastLoc.latitude, lastLoc.longitude)
-                            geoPoint = punto
-                            mapView?.controller?.animateTo(punto)
-                            try {
-                                val geocoder = Geocoder(context, Locale("es", "PE"))
-                                val dirs = geocoder.getFromLocation(lastLoc.latitude, lastLoc.longitude, 1)
-                                ubicacion = if (!dirs.isNullOrEmpty()) dirs[0].getAddressLine(0) ?: strUbicacionActual
-                                else "Lat: %.5f, Lng: %.5f".format(lastLoc.latitude, lastLoc.longitude)
-                            } catch (e: Exception) {
-                                ubicacion = "Lat: %.5f, Lng: %.5f".format(lastLoc.latitude, lastLoc.longitude)
-                            }
-                        } else {
-                            ubicacion = strPermisoDenegado
-                        }
-                    }
+        locationHelper.getCurrentLocation { loc ->
+            if (loc != null) {
+                val punto = GeoPoint(loc.latitude, loc.longitude)
+                geoPoint = punto
+                mapView?.controller?.animateTo(punto)
+                try {
+                    val geocoder = Geocoder(context, Locale("es", "PE"))
+                    val dirs = geocoder.getFromLocation(loc.latitude, loc.longitude, 1)
+                    ubicacion = if (!dirs.isNullOrEmpty()) dirs[0].getAddressLine(0) ?: strUbicacionActual
+                    else "Lat: %.5f, Lng: %.5f".format(loc.latitude, loc.longitude)
+                } catch (e: Exception) {
+                    ubicacion = "Lat: %.5f, Lng: %.5f".format(loc.latitude, loc.longitude)
                 }
-            }.addOnFailureListener { ubicacion = strPermisoDenegado }
-        } catch (e: SecurityException) {
-            ubicacion = strPermisoDenegado
+            } else {
+                ubicacion = strPermisoDenegado
+            }
         }
     }
 
@@ -225,11 +196,24 @@ fun ReportsPage(
         }
     }
 
+    // ── Función: solicitar ubicación con verificación de GPS ──────────────
     fun solicitarUbicacion() {
-        if (!prefManager.isLocationSharingEnabled()) {
-            ubicacion = "Ubicación desactivada en ajustes"
+        // Verificar si el GPS está activado
+        val locationManager = context.getSystemService(android.content.Context.LOCATION_SERVICE)
+                as android.location.LocationManager
+        val gpsHabilitado = locationManager.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER)
+                || locationManager.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER)
+
+        if (!gpsHabilitado) {
+            // ← AQUÍ se activa el diálogo de GPS desactivado
+            gpsDesactivado    = true
+            mostrarDialogoGps = true
+            ubicacion = "Activa el GPS para detectar tu ubicación"
             return
         }
+
+        gpsDesactivado = false
+
         if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             obtenerUbicacionGps()
@@ -241,6 +225,7 @@ fun ReportsPage(
         }
     }
 
+    // ── Solicitar ubicación al abrir la pantalla ───────────────────────────
     LaunchedEffect(Unit) {
         solicitarUbicacion()
     }
@@ -430,15 +415,20 @@ fun ReportsPage(
                     fontSize = 10.sp, fontWeight = FontWeight.Bold, color = primaryColor)
 
                 Surface(
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp).clickable { solicitarUbicacion() },
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp)
+                        .clickable { solicitarUbicacion() },
                     shape = RoundedCornerShape(20.dp),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
                     shadowElevation = 4.dp
                 ) {
                     Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.MyLocation, contentDescription = null,
-                            modifier = Modifier.size(14.dp), tint = onSurfaceVariantColor)
+                        Icon(
+                            if (gpsDesactivado) Icons.Default.GpsOff else Icons.Default.MyLocation,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = if (gpsDesactivado) Color(0xFFE65100) else onSurfaceVariantColor
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(text = ubicacion, fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
@@ -574,6 +564,45 @@ fun ReportsPage(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 24.dp))
         }
+    }
+
+    // ── Diálogo: GPS desactivado ───────────────────────────────────────────
+    if (mostrarDialogoGps) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoGps = false },
+            icon  = { Icon(Icons.Default.GpsOff, tint = Color(0xFFE65100), contentDescription = null) },
+            title = { Text("GPS desactivado", fontWeight = FontWeight.Bold) },
+            text  = {
+                Text(
+                    "Tu ubicación en tiempo real no está disponible porque el GPS está apagado.\n\n" +
+                            "Activa el GPS en los ajustes de tu dispositivo para detectar tu ubicación automáticamente, " +
+                            "o ingresa la dirección manualmente.",
+                    lineHeight = 20.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        mostrarDialogoGps = false
+                        context.startActivity(
+                            android.content.Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                        )
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE65100))
+                ) {
+                    Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Activar GPS")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    mostrarDialogoGps = false
+                    ubicacionTemporal = ""
+                    editandoUbicacion = true
+                }) { Text("Ingresar manualmente") }
+            }
+        )
     }
 
     // ── Diálogo: Modificar ubicación ───────────────────────────────────────
@@ -712,7 +741,6 @@ fun TopHeader(onLogout: () -> Unit, onNavigateToSettings: () -> Unit, onNavigate
 
     Row(
         modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding()
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -726,6 +754,9 @@ fun TopHeader(onLogout: () -> Unit, onNavigateToSettings: () -> Unit, onNavigate
                 fontSize = 20.sp, color = primaryColor)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onNavigateToCrud) {
+                Icon(Icons.Default.List, contentDescription = "Gestionar incidencias", tint = primaryColor)
+            }
             Icon(Icons.Default.NotificationsNone, contentDescription = null, tint = onSurfaceVariantColor)
             Spacer(modifier = Modifier.width(16.dp))
             IconButton(onClick = { mostrarDialogo = true }) {
