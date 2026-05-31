@@ -204,8 +204,8 @@ fun AppNavigation() {
             )
         }
 
-        composable("crud") {
+        /*composable("crud") {
             CrudIncidenciasPage(onBack = { navController.popBackStack() })
-        }
+        }*/
     }
 }

@@ -228,6 +228,7 @@ fun AjustesPrefs(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(backgroundColor)
+                    .statusBarsPadding()
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
