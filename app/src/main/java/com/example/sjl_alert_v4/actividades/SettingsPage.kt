@@ -228,6 +228,7 @@ fun AjustesPrefs(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(backgroundColor)
+                    .statusBarsPadding()
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -476,8 +477,8 @@ fun AjustesPrefs(
                     icon = Icons.Default.LocationOn,
                     title = stringResource(R.string.compartir_ubicacion),
                     checked = locationSharing,
-                    onCheckedChange = { 
-                        locationSharing = it 
+                    onCheckedChange = {
+                        locationSharing = it
                         preferenceManager.setLocationSharingEnabled(it)
                     }
                 )
