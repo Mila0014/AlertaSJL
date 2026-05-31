@@ -22,6 +22,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -69,6 +72,34 @@ fun calcularEdad(fechaTexto: String): Int? {
     }
 }
 
+class DateVisualTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val trimmed = if (text.text.length >= 8) text.text.substring(0..7) else text.text
+        var out = ""
+        for (i in trimmed.indices) {
+            out += trimmed[i]
+            if (i == 1 || i == 3) out += "/"
+        }
+        
+        val offsetTranslator = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int {
+                if (offset <= 1) return offset
+                if (offset <= 3) return offset + 1
+                if (offset <= 8) return offset + 2
+                return 10
+            }
+
+            override fun transformedToOriginal(offset: Int): Int {
+                if (offset <= 2) return offset
+                if (offset <= 5) return offset - 1
+                if (offset <= 10) return offset - 2
+                return 8
+            }
+        }
+        return TransformedText(AnnotatedString(out), offsetTranslator)
+    }
+}
+
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun RegisterPreview() {
@@ -97,7 +128,12 @@ fun RegisterPage(
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
 
-    val edad = calcularEdad(fechaNacimiento)
+    val fechaNacimientoFormateada = when {
+        fechaNacimiento.length <= 2 -> fechaNacimiento
+        fechaNacimiento.length <= 4 -> "${fechaNacimiento.take(2)}/${fechaNacimiento.drop(2)}"
+        else -> "${fechaNacimiento.take(2)}/${fechaNacimiento.drop(2).take(2)}/${fechaNacimiento.drop(4)}"
+    }
+    val edad = calcularEdad(fechaNacimientoFormateada)
 
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -277,14 +313,9 @@ fun RegisterPage(
                             value = fechaNacimiento,
                             onValueChange = { input ->
                                 val soloDigitos = input.filter { it.isDigit() }.take(8)
-                                fechaNacimiento = when {
-                                    soloDigitos.length <= 2 -> soloDigitos
-                                    soloDigitos.length <= 4 ->
-                                        "${soloDigitos.take(2)}/${soloDigitos.drop(2)}"
-                                    else ->
-                                        "${soloDigitos.take(2)}/${soloDigitos.drop(2).take(2)}/${soloDigitos.drop(4)}"
-                                }
+                                fechaNacimiento = soloDigitos
                             },
+                            visualTransformation = DateVisualTransformation(),
                             modifier = Modifier.weight(1f),
                             placeholder = { Text("DD/MM/AAAA", color = outlineColor) },
                             leadingIcon = {
@@ -305,7 +336,7 @@ fun RegisterPage(
                                 focusedTextColor = onSurfaceColor,
                                 unfocusedTextColor = onSurfaceColor,
                             ),
-                            isError = fechaNacimiento.length == 10 && (edad == null || edad < 18)
+                            isError = fechaNacimiento.length == 8 && (edad == null || edad < 18)
                         )
 
                         if (edad != null) {
@@ -327,7 +358,7 @@ fun RegisterPage(
                         }
                     }
 
-                    if (fechaNacimiento.length == 10 && edad != null && edad < 18) {
+                    if (fechaNacimiento.length == 8 && edad != null && edad < 18) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Debes ser mayor de 18 años para registrarte",
@@ -335,7 +366,7 @@ fun RegisterPage(
                             fontSize = 12.sp
                         )
                     }
-                    if (fechaNacimiento.length == 10 && edad == null) {
+                    if (fechaNacimiento.length == 8 && edad == null) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Ingresa una fecha válida",
@@ -531,7 +562,7 @@ fun RegisterPage(
                                     "Todos los campos son obligatorios"
                                 dni.length != 8 ->
                                     "El DNI debe tener 8 dígitos"
-                                fechaNacimiento.length < 10 || edad == null ->
+                                fechaNacimiento.length < 8 || edad == null ->
                                     "Ingresa tu fecha de nacimiento válida"
                                 edad < 18 ->
                                     "Debes ser mayor de 18 años para registrarte"
@@ -560,7 +591,7 @@ fun RegisterPage(
                                                 contrasena      = hashSHA256(contrasena),
                                                 direccion       = direccion.trim(),
                                                 fechaRegistro   = System.currentTimeMillis(),
-                                                fechaNacimiento = fechaNacimiento
+                                                fechaNacimiento = fechaNacimientoFormateada
                                             )
                                         )
                                         withContext(Dispatchers.Main) {
