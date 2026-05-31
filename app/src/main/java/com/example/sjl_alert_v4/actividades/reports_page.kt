@@ -741,6 +741,7 @@ fun TopHeader(onLogout: () -> Unit, onNavigateToSettings: () -> Unit, onNavigate
 
     Row(
         modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -754,9 +755,6 @@ fun TopHeader(onLogout: () -> Unit, onNavigateToSettings: () -> Unit, onNavigate
                 fontSize = 20.sp, color = primaryColor)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onNavigateToCrud) {
-                Icon(Icons.Default.List, contentDescription = "Gestionar incidencias", tint = primaryColor)
-            }
             Icon(Icons.Default.NotificationsNone, contentDescription = null, tint = onSurfaceVariantColor)
             Spacer(modifier = Modifier.width(16.dp))
             IconButton(onClick = { mostrarDialogo = true }) {
