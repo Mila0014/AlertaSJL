@@ -158,9 +158,20 @@ fun ReportsPage(
     }
 
     // ── Obtener ubicación GPS ──────────────────────────────────────────────
-    LaunchedEffect(Unit) {
+    val fusedClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+
+    fun obtenerUbicacionGps() {
+        if (!prefManager.isLocationSharingEnabled()) {
+            ubicacion = "Ubicación desactivada en ajustes"
+            return
+        }
+        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ubicacion = strPermisoDenegado
+            return
+        }
+        ubicacion = strObteniendoUbic
         try {
-            val fusedClient = LocationServices.getFusedLocationProviderClient(context)
             val cts = com.google.android.gms.tasks.CancellationTokenSource()
             fusedClient.getCurrentLocation(
                 com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
@@ -201,6 +212,37 @@ fun ReportsPage(
         } catch (e: SecurityException) {
             ubicacion = strPermisoDenegado
         }
+    }
+
+    val permisoUbicacionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permisos ->
+        if (permisos.getOrDefault(android.Manifest.permission.ACCESS_FINE_LOCATION, false) ||
+            permisos.getOrDefault(android.Manifest.permission.ACCESS_COARSE_LOCATION, false)) {
+            obtenerUbicacionGps()
+        } else {
+            ubicacion = strPermisoDenegado
+        }
+    }
+
+    fun solicitarUbicacion() {
+        if (!prefManager.isLocationSharingEnabled()) {
+            ubicacion = "Ubicación desactivada en ajustes"
+            return
+        }
+        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            obtenerUbicacionGps()
+        } else {
+            permisoUbicacionLauncher.launch(arrayOf(
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION
+            ))
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        solicitarUbicacion()
     }
 
     val etiquetaTipo by remember(tipoSeleccionadoId, tipoPersonalizado) {
@@ -388,7 +430,7 @@ fun ReportsPage(
                     fontSize = 10.sp, fontWeight = FontWeight.Bold, color = primaryColor)
 
                 Surface(
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp),
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp).clickable { solicitarUbicacion() },
                     shape = RoundedCornerShape(20.dp),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
                     shadowElevation = 4.dp

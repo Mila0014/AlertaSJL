@@ -32,6 +32,9 @@ class PreferenceManager(context: Context) {
     fun isCommunityAlertsEnabled() = prefs.getBoolean("community_alerts", true)
     fun setCommunityAlertsEnabled(enable: Boolean) = prefs.edit().putBoolean("community_alerts", enable).apply()
 
+    fun isLocationSharingEnabled() = prefs.getBoolean("location_sharing", true)
+    fun setLocationSharingEnabled(enable: Boolean) = prefs.edit().putBoolean("location_sharing", enable).apply()
+
     // ---- SESIÓN DE USUARIO ----
 
     // Guardar sesión al hacer login exitoso
