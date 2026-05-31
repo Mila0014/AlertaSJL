@@ -378,9 +378,10 @@ fun LoginPage(
                                                         if (usuario != null) {
                                                             prefManager.resetearIntentosFallidos()
                                                             prefManager.guardarSesion(
-                                                                usuarioId = usuario.id,
-                                                                nombre    = usuario.nombre,
-                                                                correo    = usuario.correo
+                                                                usuarioId      = usuario.id,
+                                                                nombre         = usuario.nombre,
+                                                                correo         = usuario.correo,
+                                                                mantenerSesion = rememberMe
                                                             )
                                                             onLoginSuccess()
                                                         }

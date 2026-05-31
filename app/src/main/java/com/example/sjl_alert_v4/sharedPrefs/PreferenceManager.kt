@@ -38,13 +38,26 @@ class PreferenceManager(context: Context) {
     // ---- SESIÓN DE USUARIO ----
 
     // Guardar sesión al hacer login exitoso
-    fun guardarSesion(usuarioId: Int, nombre: String, correo: String) {
+    // mantenerSesion = true → persiste al cerrar la app
+    // mantenerSesion = false → se borra al cerrar la app (sesión temporal)
+    fun guardarSesion(usuarioId: Int, nombre: String, correo: String, mantenerSesion: Boolean = false) {
         prefs.edit()
             .putBoolean("sesion_activa", true)
+            .putBoolean("mantener_sesion", mantenerSesion)
             .putInt("sesion_usuario_id", usuarioId)
             .putString("sesion_nombre", nombre)
             .putString("sesion_correo", correo)
             .apply()
+    }
+
+    // Verifica si el usuario eligió mantener la sesión
+    fun getMantenerSesion() = prefs.getBoolean("mantener_sesion", false)
+
+    // Llamar en MainActivity al iniciar: si no eligió mantener sesión, cerrar automáticamente
+    fun verificarSesionAlAbrir() {
+        if (haySesionActiva() && !getMantenerSesion()) {
+            cerrarSesion()
+        }
     }
 
     // Verificar si hay sesión activa

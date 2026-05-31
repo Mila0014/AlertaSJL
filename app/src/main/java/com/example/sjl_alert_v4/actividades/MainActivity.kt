@@ -68,6 +68,8 @@ fun AppNavigation() {
     val context = LocalContext.current
     val prefManager = remember { PreferenceManager(context) }
 
+    // Si el usuario no eligió mantener sesión, cerrarla automáticamente al abrir
+    prefManager.verificarSesionAlAbrir()
     val startDestination = if (prefManager.haySesionActiva()) "home" else "login"
 
     NavHost(navController = navController, startDestination = startDestination) {
