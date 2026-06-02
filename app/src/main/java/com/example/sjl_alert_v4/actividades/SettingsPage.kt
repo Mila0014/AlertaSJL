@@ -254,6 +254,7 @@ fun AjustesPrefs(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .navigationBarsPadding()
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState())
         ) {

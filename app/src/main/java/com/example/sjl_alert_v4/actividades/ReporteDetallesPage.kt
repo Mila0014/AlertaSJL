@@ -147,6 +147,7 @@ fun ReporteDetallesPage(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .navigationBarsPadding()
                 .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState())
         ) {

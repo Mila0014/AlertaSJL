@@ -175,6 +175,8 @@ fun RegisterPage(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally

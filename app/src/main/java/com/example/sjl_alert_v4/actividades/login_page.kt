@@ -113,6 +113,8 @@ fun LoginPage(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -349,6 +351,19 @@ fun LoginPage(
                                 else -> {
                                     isLoading = true
                                     errorMessage = null
+
+                                    scope.launch {
+                                        isLoading = true
+                                        kotlinx.coroutines.delay(1000) // Simular espera
+                                        isLoading = false
+
+                                        // Forzar login con un ID de prueba
+                                        prefManager.guardarSesion(usuarioId = 1, nombre = "Usuario Prueba", correo = "test@sjl.com")
+                                        onLoginSuccess()
+                                    }
+
+                                    /*
+                                    Comentado temporalmente solo para hacer pruebas de IU
                                     scope.launch(Dispatchers.IO) {
                                         try {
                                             // Verifica si está bloqueado
@@ -413,6 +428,7 @@ fun LoginPage(
                                             }
                                         }
                                     }
+                                    */
                                 }
                             }
                         },

@@ -94,7 +94,9 @@ fun WelcomePage(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(horizontal = 32.dp)
+            modifier = Modifier
+                .systemBarsPadding()
+                .padding(horizontal = 32.dp)
         ) {
             // Logo animado
             Image(
