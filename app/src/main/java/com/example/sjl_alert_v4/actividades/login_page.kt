@@ -352,6 +352,8 @@ fun LoginPage(
                                     isLoading = true
                                     errorMessage = null
 
+                                    //Esto solo sirve para ingresar al IU, pero no valida nada
+                                    //Se usar para testeo
                                     scope.launch {
                                         isLoading = true
                                         kotlinx.coroutines.delay(1000) // Simular espera
