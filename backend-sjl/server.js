@@ -85,7 +85,6 @@ app.post("/api/usuarios/registro", async (req, res) => {
 
     const p = await getPool();
 
-    // Verificar si ya existe
     const existe = await p.request()
       .input("dni",    sql.NVarChar(20),  dni.trim())
       .input("correo", sql.NVarChar(200), correo.trim().toLowerCase())
@@ -99,7 +98,6 @@ app.post("/api/usuarios/registro", async (req, res) => {
       return res.status(409).json({ error: campo });
     }
 
-    // Insertar usuario
     const result = await p.request()
       .input("nombre",          sql.NVarChar(100), nombre.trim())
       .input("apellido",        sql.NVarChar(100), (apellido || "").trim())
@@ -138,13 +136,9 @@ app.post("/api/usuarios/login", async (req, res) => {
 
     const p = await getPool();
 
-    // Buscar usuario por DNI o correo
     const busqueda = await p.request()
       .input("dniOCorreo", sql.NVarChar(200), dniOCorreo.trim())
-      .query(`
-        SELECT * FROM usuarios
-        WHERE dni = @dniOCorreo OR correo = @dniOCorreo
-      `);
+      .query("SELECT * FROM usuarios WHERE dni = @dniOCorreo OR correo = @dniOCorreo");
 
     if (busqueda.recordset.length === 0) {
       return res.status(404).json({ error: "Usuario no encontrado" });
@@ -152,27 +146,94 @@ app.post("/api/usuarios/login", async (req, res) => {
 
     const usuario = busqueda.recordset[0];
 
-    // Verificar contraseña (hash SHA-256)
     if (usuario.contrasena !== contrasena) {
       return res.status(401).json({ error: "Contraseña incorrecta" });
     }
 
-    // Login exitoso — devuelve datos del usuario (sin contraseña)
     res.status(200).json({
       mensaje: "Login exitoso",
       usuario: {
-        id:       usuario.id,
-        nombre:   usuario.nombre,
-        apellido: usuario.apellido,
-        dni:      usuario.dni,
-        correo:   usuario.correo,
-        telefono: usuario.telefono,
-        direccion: usuario.direccion
+        id:             usuario.id,
+        nombre:         usuario.nombre,
+        apellido:       usuario.apellido,
+        dni:            usuario.dni,
+        correo:         usuario.correo,
+        telefono:       usuario.telefono,
+        direccion:      usuario.direccion,
+        fechaNacimiento: usuario.fechaNacimiento
       }
     });
 
   } catch (err) {
     console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// LISTAR TODOS: GET /api/usuarios
+app.get("/api/usuarios", async (req, res) => {
+  try {
+    const p = await getPool();
+    const r = await p.request().query(
+      "SELECT id, nombre, apellido, dni, correo, telefono, direccion, fechaRegistro, fechaNacimiento FROM usuarios ORDER BY id DESC"
+    );
+    res.json(r.recordset);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// OBTENER UNO: GET /api/usuarios/:id
+app.get("/api/usuarios/:id", async (req, res) => {
+  try {
+    const p = await getPool();
+    const r = await p.request()
+      .input("id", sql.Int, parseInt(req.params.id))
+      .query("SELECT id, nombre, apellido, dni, correo, telefono, direccion, fechaRegistro, fechaNacimiento FROM usuarios WHERE id = @id");
+    if (r.recordset.length === 0) return res.status(404).json({ error: "Usuario no encontrado" });
+    res.json(r.recordset[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ACTUALIZAR: PUT /api/usuarios/:id
+app.put("/api/usuarios/:id", async (req, res) => {
+  try {
+    const { nombre, apellido, dni, correo, telefono, direccion, fechaNacimiento } = req.body;
+    const p = await getPool();
+    const r = await p.request()
+      .input("id",              sql.Int,           parseInt(req.params.id))
+      .input("nombre",          sql.NVarChar(100), nombre         || "")
+      .input("apellido",        sql.NVarChar(100), apellido       || "")
+      .input("dni",             sql.NVarChar(20),  dni            || "")
+      .input("correo",          sql.NVarChar(200), (correo || "").toLowerCase())
+      .input("telefono",        sql.NVarChar(20),  telefono       || "")
+      .input("direccion",       sql.NVarChar(300), direccion      || "")
+      .input("fechaNacimiento", sql.NVarChar(20),  fechaNacimiento || "")
+      .query(`
+        UPDATE usuarios SET
+          nombre=@nombre, apellido=@apellido, dni=@dni, correo=@correo,
+          telefono=@telefono, direccion=@direccion, fechaNacimiento=@fechaNacimiento
+        WHERE id=@id
+      `);
+    if (r.rowsAffected[0] === 0) return res.status(404).json({ error: "Usuario no encontrado" });
+    res.json({ mensaje: "Usuario actualizado", id: req.params.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ELIMINAR: DELETE /api/usuarios/:id
+app.delete("/api/usuarios/:id", async (req, res) => {
+  try {
+    const p = await getPool();
+    const r = await p.request()
+      .input("id", sql.Int, parseInt(req.params.id))
+      .query("DELETE FROM usuarios WHERE id = @id");
+    if (r.rowsAffected[0] === 0) return res.status(404).json({ error: "Usuario no encontrado" });
+    res.json({ mensaje: "Usuario eliminado", id: req.params.id });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });

@@ -34,6 +34,12 @@ import com.example.sjl_alert_v4.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.security.MessageDigest
+
+fun hashSHA256Login(input: String): String {
+    val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
+    return bytes.joinToString("") { "%02x".format(it) }
+}
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
@@ -64,7 +70,6 @@ fun LoginPage(
     var estaBloqueado by remember { mutableStateOf(prefManager.estaBloqueado()) }
     var tiempoRestante by remember { mutableStateOf(prefManager.getTiempoBloqueoRestante()) }
 
-    // Cuenta regresiva del bloqueo
     LaunchedEffect(estaBloqueado) {
         while (estaBloqueado) {
             kotlinx.coroutines.delay(1000)
@@ -76,7 +81,6 @@ fun LoginPage(
         }
     }
 
-    // ── Colores dinámicos del tema activo ──────────────────────────────────────
     val backgroundColor = MaterialTheme.colorScheme.background
     val primaryColor = MaterialTheme.colorScheme.primary
     val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
@@ -94,7 +98,6 @@ fun LoginPage(
             .fillMaxSize()
             .background(backgroundColor)
     ) {
-        // Decorative blobs
         Box(
             modifier = Modifier
                 .size(300.dp)
@@ -119,7 +122,6 @@ fun LoginPage(
                 .padding(horizontal = 24.dp, vertical = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // LOGO
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -151,7 +153,6 @@ fun LoginPage(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // LOGIN CARD
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -174,7 +175,6 @@ fun LoginPage(
 
                     Spacer(modifier = Modifier.height(28.dp))
 
-                    // DNI O CORREO
                     Text(
                         text = "DNI O CORREO ELECTRÓNICO",
                         style = MaterialTheme.typography.labelSmall.copy(
@@ -211,7 +211,6 @@ fun LoginPage(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // CONTRASEÑA
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -279,7 +278,6 @@ fun LoginPage(
                         )
                     )
 
-                    // MENSAJE DE ERROR
                     if (errorMessage != null) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Card(
@@ -310,7 +308,6 @@ fun LoginPage(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // REMEMBER ME
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
@@ -335,40 +332,20 @@ fun LoginPage(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // BOTÓN LOGIN CON VALIDACIÓN
                     Button(
                         onClick = {
                             when {
-                                dniOrEmail.isBlank() && password.isBlank() -> {
+                                dniOrEmail.isBlank() && password.isBlank() ->
                                     errorMessage = "Todos los campos son obligatorios"
-                                }
-                                dniOrEmail.isBlank() -> {
+                                dniOrEmail.isBlank() ->
                                     errorMessage = "Ingresa tu DNI o correo"
-                                }
-                                password.isBlank() -> {
+                                password.isBlank() ->
                                     errorMessage = "Ingresa tu contraseña"
-                                }
                                 else -> {
                                     isLoading = true
                                     errorMessage = null
-
-                                    //Esto solo sirve para ingresar al IU, pero no valida nada
-                                    //Se usar para testeo
-                                    scope.launch {
-                                        isLoading = true
-                                        kotlinx.coroutines.delay(1000) // Simular espera
-                                        isLoading = false
-
-                                        // Forzar login con un ID de prueba
-                                        prefManager.guardarSesion(usuarioId = 1, nombre = "Usuario Prueba", correo = "test@sjl.com")
-                                        onLoginSuccess()
-                                    }
-
-                                    /*
-                                    Comentado temporalmente solo para hacer pruebas de IU
                                     scope.launch(Dispatchers.IO) {
                                         try {
-                                            // Verifica si está bloqueado
                                             if (prefManager.estaBloqueado()) {
                                                 val mins = prefManager.getTiempoBloqueoRestante() / 60000
                                                 val segs = (prefManager.getTiempoBloqueoRestante() % 60000) / 1000
@@ -379,18 +356,16 @@ fun LoginPage(
                                                 }
                                                 return@launch
                                             }
-                                            // Llamada a la API de Azure — login
                                             val response = RetrofitClient.usuarioApi.login(
                                                 LoginRequest(
                                                     dniOCorreo = dniOrEmail.trim(),
-                                                    contrasena = hashSHA256(password)
+                                                    contrasena = hashSHA256Login(password)
                                                 )
                                             )
                                             withContext(Dispatchers.Main) {
                                                 isLoading = false
                                                 when (response.code()) {
                                                     200 -> {
-                                                        // Login exitoso
                                                         val usuario = response.body()?.usuario
                                                         if (usuario != null) {
                                                             prefManager.resetearIntentosFallidos()
@@ -402,12 +377,8 @@ fun LoginPage(
                                                             onLoginSuccess()
                                                         }
                                                     }
-                                                    404 -> {
-                                                        // Usuario no encontrado
-                                                        errorMessage = "Usuario no encontrado"
-                                                    }
+                                                    404 -> errorMessage = "Usuario no encontrado"
                                                     401 -> {
-                                                        // Contraseña incorrecta
                                                         prefManager.registrarIntentoFallido()
                                                         val intentos = prefManager.getIntentosFallidos()
                                                         errorMessage = if (prefManager.estaBloqueado()) {
@@ -418,9 +389,7 @@ fun LoginPage(
                                                             "Contraseña incorrecta. Intentos restantes: ${3 - intentos}"
                                                         }
                                                     }
-                                                    else -> {
-                                                        errorMessage = "Error al iniciar sesión (código: ${response.code()})"
-                                                    }
+                                                    else -> errorMessage = "Error al iniciar sesión (código: ${response.code()})"
                                                 }
                                             }
                                         } catch (e: Exception) {
@@ -430,7 +399,6 @@ fun LoginPage(
                                             }
                                         }
                                     }
-                                    */
                                 }
                             }
                         },
@@ -492,7 +460,6 @@ fun LoginPage(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // QUICK ACTIONS
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)

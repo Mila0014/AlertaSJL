@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
 
     private const val BASE_URL =
-        "https://alertasjl01-hugpgsdzgxgzgzgf.canadacentral-01.azurewebsites.net/"
+        "https://alertasjl-nuevo.azurewebsites.net/"
 
     private val logger = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
@@ -20,6 +20,8 @@ object RetrofitClient {
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
+        .followRedirects(true)
+        .followSslRedirects(true)
         .build()
 
     private val retrofit by lazy {
