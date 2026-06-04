@@ -22,14 +22,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sjl_alert_v4.R
-import com.example.sjl_alert_v4.modelos.AppDatabase
-import com.example.sjl_alert_v4.modelos.Usuario
+import com.example.sjl_alert_v4.red.RegistroRequest
+import com.example.sjl_alert_v4.red.RetrofitClient
 import com.example.sjl_alert_v4.ui.theme.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.security.MessageDigest
 
 // ----- Función utilitaria: hashea la contraseña con SHA-256 -----
@@ -67,6 +72,34 @@ fun calcularEdad(fechaTexto: String): Int? {
     }
 }
 
+class DateVisualTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val trimmed = if (text.text.length >= 8) text.text.substring(0..7) else text.text
+        var out = ""
+        for (i in trimmed.indices) {
+            out += trimmed[i]
+            if (i == 1 || i == 3) out += "/"
+        }
+        
+        val offsetTranslator = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int {
+                if (offset <= 1) return offset
+                if (offset <= 3) return offset + 1
+                if (offset <= 8) return offset + 2
+                return 10
+            }
+
+            override fun transformedToOriginal(offset: Int): Int {
+                if (offset <= 2) return offset
+                if (offset <= 5) return offset - 1
+                if (offset <= 10) return offset - 2
+                return 8
+            }
+        }
+        return TransformedText(AnnotatedString(out), offsetTranslator)
+    }
+}
+
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun RegisterPreview() {
@@ -82,7 +115,6 @@ fun RegisterPage(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val db = remember { AppDatabase.getInstance(context) }
 
     var nombre by remember { mutableStateOf("") }
     var apellido by remember { mutableStateOf("") }
@@ -96,7 +128,12 @@ fun RegisterPage(
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
 
-    val edad = calcularEdad(fechaNacimiento)
+    val fechaNacimientoFormateada = when {
+        fechaNacimiento.length <= 2 -> fechaNacimiento
+        fechaNacimiento.length <= 4 -> "${fechaNacimiento.take(2)}/${fechaNacimiento.drop(2)}"
+        else -> "${fechaNacimiento.take(2)}/${fechaNacimiento.drop(2).take(2)}/${fechaNacimiento.drop(4)}"
+    }
+    val edad = calcularEdad(fechaNacimientoFormateada)
 
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -138,6 +175,8 @@ fun RegisterPage(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -276,14 +315,9 @@ fun RegisterPage(
                             value = fechaNacimiento,
                             onValueChange = { input ->
                                 val soloDigitos = input.filter { it.isDigit() }.take(8)
-                                fechaNacimiento = when {
-                                    soloDigitos.length <= 2 -> soloDigitos
-                                    soloDigitos.length <= 4 ->
-                                        "${soloDigitos.take(2)}/${soloDigitos.drop(2)}"
-                                    else ->
-                                        "${soloDigitos.take(2)}/${soloDigitos.drop(2).take(2)}/${soloDigitos.drop(4)}"
-                                }
+                                fechaNacimiento = soloDigitos
                             },
+                            visualTransformation = DateVisualTransformation(),
                             modifier = Modifier.weight(1f),
                             placeholder = { Text("DD/MM/AAAA", color = outlineColor) },
                             leadingIcon = {
@@ -304,7 +338,7 @@ fun RegisterPage(
                                 focusedTextColor = onSurfaceColor,
                                 unfocusedTextColor = onSurfaceColor,
                             ),
-                            isError = fechaNacimiento.length == 10 && (edad == null || edad < 18)
+                            isError = fechaNacimiento.length == 8 && (edad == null || edad < 18)
                         )
 
                         if (edad != null) {
@@ -326,7 +360,7 @@ fun RegisterPage(
                         }
                     }
 
-                    if (fechaNacimiento.length == 10 && edad != null && edad < 18) {
+                    if (fechaNacimiento.length == 8 && edad != null && edad < 18) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Debes ser mayor de 18 años para registrarte",
@@ -334,7 +368,7 @@ fun RegisterPage(
                             fontSize = 12.sp
                         )
                     }
-                    if (fechaNacimiento.length == 10 && edad == null) {
+                    if (fechaNacimiento.length == 8 && edad == null) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Ingresa una fecha válida",
@@ -530,7 +564,7 @@ fun RegisterPage(
                                     "Todos los campos son obligatorios"
                                 dni.length != 8 ->
                                     "El DNI debe tener 8 dígitos"
-                                fechaNacimiento.length < 10 || edad == null ->
+                                fechaNacimiento.length < 8 || edad == null ->
                                     "Ingresa tu fecha de nacimiento válida"
                                 edad < 18 ->
                                     "Debes ser mayor de 18 años para registrarte"
@@ -546,44 +580,49 @@ fun RegisterPage(
                             }
                             if (errorMessage == null) {
                                 isLoading = true
-                                scope.launch {
+                                scope.launch(Dispatchers.IO) {
                                     try {
-                                        val existente = db.usuarioDao().buscarPorDniOCorreo(dni, correo)
-                                        if (existente != null) {
-                                            isLoading = false
-                                            errorMessage = if (existente.correo == correo.trim().lowercase()) {
-                                                "El correo ya está registrado"
-                                            } else {
-                                                "El DNI ya está registrado"
-                                            }
-                                            return@launch
-                                        }
-
-                                        val nuevoUsuario = Usuario(
-                                            nombre = nombre.trim(),
-                                            apellido = apellido.trim(),
-                                            dni = dni.trim(),
-                                            correo = correo.trim().lowercase(),
-                                            telefono = telefono.trim(),
-                                            direccion = direccion.trim(),
-                                            contrasena = hashSHA256(contrasena),
-                                            fechaNacimiento = fechaNacimiento
+                                        // Llamada a la API de Azure — registro de usuario
+                                        val response = RetrofitClient.usuarioApi.registro(
+                                            RegistroRequest(
+                                                nombre          = nombre.trim(),
+                                                apellido        = apellido.trim(),
+                                                dni             = dni.trim(),
+                                                correo          = correo.trim().lowercase(),
+                                                telefono        = telefono.trim(),
+                                                contrasena      = hashSHA256(contrasena),
+                                                direccion       = direccion.trim(),
+                                                fechaRegistro   = System.currentTimeMillis(),
+                                                fechaNacimiento = fechaNacimientoFormateada
+                                            )
                                         )
-
-                                        val id = db.usuarioDao().insertarUsuario(nuevoUsuario)
-                                        isLoading = false
-
-                                        if (id > 0) {
-                                            Toast.makeText(
-                                                context,
-                                                "¡Cuenta creada exitosamente!",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                            onRegisterSuccess()
+                                        withContext(Dispatchers.Main) {
+                                            isLoading = false
+                                            when (response.code()) {
+                                                201 -> {
+                                                    // Registro exitoso
+                                                    Toast.makeText(
+                                                        context,
+                                                        "¡Cuenta creada exitosamente!",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                    onRegisterSuccess()
+                                                }
+                                                409 -> {
+                                                    // DNI o correo ya registrado
+                                                    errorMessage = response.body()?.error
+                                                        ?: "El usuario ya está registrado"
+                                                }
+                                                else -> {
+                                                    errorMessage = "Error al registrar (código: ${response.code()})"
+                                                }
+                                            }
                                         }
                                     } catch (e: Exception) {
-                                        isLoading = false
-                                        errorMessage = "Error al guardar: ${e.message}"
+                                        withContext(Dispatchers.Main) {
+                                            isLoading = false
+                                            errorMessage = "Error: ${e.message ?: "Sin conexión. Verifica tu internet"}"
+                                        }
                                     }
                                 }
                             }

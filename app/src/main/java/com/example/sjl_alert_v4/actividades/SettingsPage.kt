@@ -47,7 +47,7 @@ fun AjustesPrefs(
     var darkMode by remember { mutableStateOf(preferenceManager.isDarkMode()) }
     var emailNotifications by remember { mutableStateOf(preferenceManager.isEmailNotificationEnabled()) }
     var communityAlerts by remember { mutableStateOf(preferenceManager.isCommunityAlertsEnabled()) }
-    var locationSharing by remember { mutableStateOf(true) }
+    var locationSharing by remember { mutableStateOf(preferenceManager.isLocationSharingEnabled()) }
 
     // ── Tamaño de fuente e idioma ─────────────────────────────────────────────
     var fontSizeActual by remember { mutableStateOf(preferenceManager.getFontSize()) }
@@ -228,6 +228,7 @@ fun AjustesPrefs(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(backgroundColor)
+                    .statusBarsPadding()
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -253,6 +254,7 @@ fun AjustesPrefs(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .navigationBarsPadding()
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
@@ -476,7 +478,10 @@ fun AjustesPrefs(
                     icon = Icons.Default.LocationOn,
                     title = stringResource(R.string.compartir_ubicacion),
                     checked = locationSharing,
-                    onCheckedChange = { locationSharing = it }
+                    onCheckedChange = { 
+                        locationSharing = it 
+                        preferenceManager.setLocationSharingEnabled(it)
+                    }
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = surfaceContainerHighColor)
                 SettingsItem(

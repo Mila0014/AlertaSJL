@@ -10,13 +10,13 @@ import androidx.room.RoomDatabase
         Usuario::class,
         IncidenciaEntity::class
     ],
-    version = 3,
+    version = 5,          // ← incrementado de 4 a 5 por nuevo campo sincronizado
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun usuarioDao(): UsuarioDao
-    abstract fun incidenciaDao(): IncidenciaDao  // ✅ NUEVO DAO
+    abstract fun incidenciaDao(): IncidenciaDao
 
     companion object {
         @Volatile

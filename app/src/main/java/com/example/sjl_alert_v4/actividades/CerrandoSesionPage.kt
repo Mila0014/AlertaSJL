@@ -52,7 +52,8 @@ fun CerrandoSesionPage(onFinished: () -> Unit) {
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+            modifier = Modifier.systemBarsPadding()
         ) {
             // Logo con animación
             Box(

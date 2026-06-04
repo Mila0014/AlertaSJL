@@ -50,6 +50,7 @@ fun RecuperarContraPage(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .navigationBarsPadding()
                 .background(Color(0xFFF8F9FA))
         ) {
             when (pasoActual) {

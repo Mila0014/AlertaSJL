@@ -122,8 +122,18 @@ fun ReporteDetallesPage(
         val formatter = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
         val fechaStr = formatter.format(Date(r.fecha))
 
-        val evidenciaUris = if (r.evidencias.isBlank()) emptyList()
-        else r.evidencias.split(",").map { Uri.parse(it.trim()) }
+        // ── Construir lista de URIs de evidencias ──────────────────────────
+        // Prioridad: campo evidencias (multi-imagen) → campo imagenUri (imagen única)
+        val evidenciaUris: List<Uri> = when {
+            r.evidencias.isNotBlank() -> {
+                r.evidencias.split(",")
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .map { Uri.parse(it) }
+            }
+            r.imagenUri != null -> listOf(Uri.parse(r.imagenUri))
+            else -> emptyList()
+        }
 
         val (estadoColor, estadoLabel) = when (r.estado) {
             "PENDIENTE"  -> Pair(DeepYellow, strPendiente)
@@ -137,6 +147,7 @@ fun ReporteDetallesPage(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .navigationBarsPadding()
                 .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState())
         ) {
@@ -221,7 +232,9 @@ fun ReporteDetallesPage(
                 Spacer(modifier = Modifier.height(20.dp))
             }
 
-            // ── Evidencias ─────────────────────────────────────────────────
+            // ── Evidencias / Imagen del reporte ────────────────────────────
+            // CP-09.1 / CP-09.2: Muestra las imágenes guardadas en evidencias o imagenUri
+            // CP-09.3: Muestra mensaje "Sin evidencias" si no hay imágenes
             if (evidenciaUris.isNotEmpty()) {
                 Text(
                     text = stringResource(R.string.evidencias, evidenciaUris.size),
@@ -235,11 +248,15 @@ fun ReporteDetallesPage(
 
                 val chunked = evidenciaUris.chunked(2)
                 chunked.forEach { fila ->
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         fila.forEach { uri ->
                             Box(
                                 modifier = Modifier
-                                    .weight(1f).height(160.dp)
+                                    .weight(1f)
+                                    .height(160.dp)
                                     .clip(RoundedCornerShape(12.dp))
                                     .clickable { imagenAmpliada = uri }
                             ) {
@@ -249,14 +266,21 @@ fun ReporteDetallesPage(
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
                                 )
+                                // Ícono zoom en esquina inferior derecha
                                 Box(
                                     modifier = Modifier
-                                        .align(Alignment.BottomEnd).padding(6.dp).size(28.dp)
+                                        .align(Alignment.BottomEnd)
+                                        .padding(6.dp)
+                                        .size(28.dp)
                                         .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(6.dp)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.Default.ZoomIn, contentDescription = null,
-                                        tint = Color.White, modifier = Modifier.size(16.dp))
+                                    Icon(
+                                        Icons.Default.ZoomIn,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                 }
                             }
                         }
@@ -265,16 +289,25 @@ fun ReporteDetallesPage(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             } else {
+                // CP-09.3: Sin imagen seleccionada → muestra tarjeta informativa
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.ImageNotSupported, contentDescription = null,
-                            tint = onSurfaceVariantColor, modifier = Modifier.size(20.dp))
+                        Icon(
+                            Icons.Default.ImageNotSupported,
+                            contentDescription = null,
+                            tint = onSurfaceVariantColor,
+                            modifier = Modifier.size(20.dp)
+                        )
                         Spacer(modifier = Modifier.width(10.dp))
-                        Text(stringResource(R.string.sin_evidencias), fontSize = 14.sp, color = onSurfaceVariantColor)
+                        Text(
+                            stringResource(R.string.sin_evidencias),
+                            fontSize = 14.sp,
+                            color = onSurfaceVariantColor
+                        )
                     }
                 }
             }
@@ -293,8 +326,12 @@ private fun DetalleItem(
     onSurfaceVariantColor: androidx.compose.ui.graphics.Color
 ) {
     Row(verticalAlignment = Alignment.Top) {
-        Icon(icon, contentDescription = null,
-            tint = primaryColor, modifier = Modifier.size(20.dp).padding(top = 2.dp))
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = primaryColor,
+            modifier = Modifier.size(20.dp).padding(top = 2.dp)
+        )
         Spacer(modifier = Modifier.width(10.dp))
         Column {
             Text(label, fontSize = 12.sp, color = onSurfaceVariantColor, fontWeight = FontWeight.SemiBold)

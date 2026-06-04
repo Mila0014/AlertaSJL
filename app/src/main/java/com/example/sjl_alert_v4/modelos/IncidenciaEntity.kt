@@ -12,8 +12,10 @@ data class IncidenciaEntity(
     val ubicacion: String = "",
     val latitud: Double? = null,
     val longitud: Double? = null,
-    val evidencias: String = "",   // URIs separadas por coma
+    val evidencias: String = "",
+    val imagenUri: String? = null,
     val fecha: Long = System.currentTimeMillis(),
     val estado: String = "PENDIENTE",
-    val usuarioId: Int = 0
+    val usuarioId: Int = 0,
+    val sincronizado: Boolean = false   // ← NUEVO: false = pendiente de subir a Azure
 )

@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,11 +17,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sjl_alert_v4.R
 import com.example.sjl_alert_v4.modelos.AppDatabase
 import com.example.sjl_alert_v4.modelos.IncidenciaEntity
+import com.example.sjl_alert_v4.modelos.IncidenciaRepository
 import com.example.sjl_alert_v4.sharedPrefs.PreferenceManager
 import com.example.sjl_alert_v4.ui.theme.*
 import java.text.SimpleDateFormat
@@ -33,13 +36,20 @@ fun MisReportesPage(
     onNavigateToSettings: () -> Unit,
     onNuevoReporte: () -> Unit,
     onNavigateToDirectory: () -> Unit = {},
-    onVerDetalles: (String) -> Unit = {}
+    onVerDetalles: (String) -> Unit = {},
+    onNavigateToCrud: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val db = remember { AppDatabase.getInstance(context) }
+    val repo = remember { IncidenciaRepository(db.incidenciaDao()) }
     val prefManager = remember { PreferenceManager(context) }
     val usuarioId = remember { prefManager.getSesionUsuarioId() }
     val nombre = remember { prefManager.getSesionNombre() }
+
+    // ── Sincronizar con Supabase al abrir ────────────────────────────────────
+    LaunchedEffect(usuarioId) {
+        repo.sincronizarConAzure(usuarioId)
+    }
 
     val reportes by db.incidenciaDao()
         .obtenerPorUsuario(usuarioId)
@@ -51,7 +61,11 @@ fun MisReportesPage(
 
     Scaffold(
         topBar = {
-            TopHeader(onLogout = onLogout, onNavigateToSettings = onNavigateToSettings)
+            TopHeader(
+                onLogout = onLogout,
+                onNavigateToSettings = onNavigateToSettings,
+                onNavigateToCrud = onNavigateToCrud
+            )
         },
         bottomBar = {
             BottomNavigationBar(
@@ -94,7 +108,7 @@ fun MisReportesPage(
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                            Icons.Default.Assignment, contentDescription = null,
+                            Icons.AutoMirrored.Filled.Assignment, contentDescription = null,
                             modifier = Modifier.size(72.dp),
                             tint = onSurfaceVariantColor.copy(alpha = 0.4f)
                         )
@@ -125,9 +139,8 @@ fun MisReportesPage(
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(reportes) { reporte ->
                         ReporteCard(
-                            reporte = reporte,
-                            onClick = { onVerDetalles(reporte.id) }
-                        )
+                            reporte = reporte
+                        ) { onVerDetalles(reporte.id) }
                     }
                     item { Spacer(modifier = Modifier.height(80.dp)) }
                 }
