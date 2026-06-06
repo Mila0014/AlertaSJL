@@ -478,8 +478,8 @@ fun AjustesPrefs(
                     icon = Icons.Default.LocationOn,
                     title = stringResource(R.string.compartir_ubicacion),
                     checked = locationSharing,
-                    onCheckedChange = { 
-                        locationSharing = it 
+                    onCheckedChange = {
+                        locationSharing = it
                         preferenceManager.setLocationSharingEnabled(it)
                     }
                 )
