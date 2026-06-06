@@ -171,7 +171,7 @@ fun RecuperarContraContent(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "SISTEMA DE SEGURIDAD ENCRIPTADO",
+                text = "Sistema de seguridad encriptado",
                 style = MaterialTheme.typography.labelSmall.copy(
                     color = Color.Gray,
                     letterSpacing = 1.sp

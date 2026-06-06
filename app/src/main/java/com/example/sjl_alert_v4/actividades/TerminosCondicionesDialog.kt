@@ -141,7 +141,7 @@ fun TerminosCondicionesDialog(
 
                     // Fecha de vigencia
                     Text(
-                        text = "Última actualización: Junio 2025",
+                        text = "Última actualización: Junio 2026",
                         style = MaterialTheme.typography.labelSmall.copy(
                             color = onSurfaceVariant,
                             fontWeight = FontWeight.Medium

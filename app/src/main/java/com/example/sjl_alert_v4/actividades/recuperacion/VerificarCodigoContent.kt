@@ -162,7 +162,7 @@ fun VerificarCodigoContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "SEGURIDAD DIGITAL SJL • 2024",
+            text = "Seguridad digital SJL • 2026",
             style = MaterialTheme.typography.labelSmall.copy(
                 color = Color.LightGray,
                 letterSpacing = 1.sp

@@ -254,7 +254,7 @@ fun RegisterPage(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            RegisterFieldLabel("NOMBRE", onSurfaceVariantColor)
+                            RegisterFieldLabel("Nombre", onSurfaceVariantColor)
                             Spacer(modifier = Modifier.height(8.dp))
                             RegisterTextField(
                                 value = nombre,
@@ -273,7 +273,7 @@ fun RegisterPage(
                             )
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            RegisterFieldLabel("APELLIDO", onSurfaceVariantColor)
+                            RegisterFieldLabel("Apellido", onSurfaceVariantColor)
                             Spacer(modifier = Modifier.height(8.dp))
                             RegisterTextField(
                                 value = apellido,
@@ -315,7 +315,7 @@ fun RegisterPage(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     // ── FECHA DE NACIMIENTO ────────────────────────────────
-                    RegisterFieldLabel("FECHA DE NACIMIENTO", onSurfaceVariantColor)
+                    RegisterFieldLabel("Fecha de nacimiento", onSurfaceVariantColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -391,7 +391,7 @@ fun RegisterPage(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     // ── Correo ─────────────────────────────────────────────
-                    RegisterFieldLabel("CORREO ELECTRÓNICO", onSurfaceVariantColor)
+                    RegisterFieldLabel("Correo electrónico", onSurfaceVariantColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     RegisterTextField(
                         value = correo,
@@ -413,7 +413,7 @@ fun RegisterPage(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     // ── Teléfono ───────────────────────────────────────────
-                    RegisterFieldLabel("TELÉFONO", onSurfaceVariantColor)
+                    RegisterFieldLabel("Teléfono", onSurfaceVariantColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     RegisterTextField(
                         value = telefono,
@@ -435,7 +435,7 @@ fun RegisterPage(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     // ── Dirección ──────────────────────────────────────────
-                    RegisterFieldLabel("DIRECCIÓN (OPCIONAL)", onSurfaceVariantColor)
+                    RegisterFieldLabel("Dirección (opcional)", onSurfaceVariantColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     RegisterTextField(
                         value = direccion,
@@ -456,7 +456,7 @@ fun RegisterPage(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     // ── Contraseña ─────────────────────────────────────────
-                    RegisterFieldLabel("CONTRASEÑA", onSurfaceVariantColor)
+                    RegisterFieldLabel("Contraseña", onSurfaceVariantColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = contrasena,
@@ -492,7 +492,7 @@ fun RegisterPage(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     // ── Confirmar Contraseña ───────────────────────────────
-                    RegisterFieldLabel("CONFIRMAR CONTRASEÑA", onSurfaceVariantColor)
+                    RegisterFieldLabel("Confirmar contraseña", onSurfaceVariantColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = confirmarContrasena,

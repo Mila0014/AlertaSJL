@@ -64,19 +64,19 @@
     <!-- DirectorioPage -->
     <string name="directorio_titulo">Directorio de\nEmergencias</string>
     <string name="directorio_subtitulo">Acceso inmediato a los servicios de auxilio en San Juan de Lurigancho.</string>
-    <string name="principal">PRINCIPAL</string>
+    <string name="principal">Principal</string>
     <string name="llamar">Llamar %s</string>
     <!-- Contactos del directorio -->
     <string name="contacto_serenazgo_nombre">Serenazgo SJL</string>
-    <string name="contacto_serenazgo_desc">Central de Seguridad Ciudadana</string>
+    <string name="contacto_serenazgo_desc">Central de seguridad ciudadana</string>
     <string name="contacto_pnp_nombre">PNP</string>
-    <string name="contacto_pnp_desc">EMERGENCIAS 105</string>
+    <string name="contacto_pnp_desc">Emergencias 105</string>
     <string name="contacto_bomberos_nombre">Bomberos</string>
-    <string name="contacto_bomberos_desc">EMERGENCIAS 116</string>
+    <string name="contacto_bomberos_desc">Emergencias 116</string>
     <string name="contacto_samu_nombre">SAMU</string>
-    <string name="contacto_samu_desc">AMBULANCIA 106</string>
+    <string name="contacto_samu_desc">Ambulancia 106</string>
     <string name="contacto_comisaria_se_nombre">Comisaría</string>
-    <string name="contacto_comisaria_se_desc">SANTA ELIZABETH</string>
+    <string name="contacto_comisaria_se_desc">Santa Elizabeth</string>
     <string name="contacto_comisaria_zarate_nombre">Comisaría de Zárate</string>
     <string name="contacto_comisaria_canto_rey_nombre">Comisaría de Canto Rey</string>
     <string name="contacto_radio_exitosa_nombre">Radio Exitosa</string>
@@ -107,7 +107,7 @@
     <string name="reportar_subtitulo">Tu seguridad es nuestra prioridad.\nSelecciona el tipo de evento.</string>
     <string name="tipo_incidencia">Tipo de Incidencia</string>
     <string name="ubicacion_actual">Tu Ubicación Actual</string>
-    <string name="en_tiempo_real">EN TIEMPO REAL</string>
+    <string name="en_tiempo_real">En tiempo real</string>
     <string name="modificar_ubicacion">Modificar ubicación manualmente</string>
     <string name="adjuntar_evidencia">Adjuntar Evidencia</string>
     <string name="subir_foto_video">Subir Foto/Video</string>
@@ -146,7 +146,7 @@
     <string name="nuevo_reporte_titulo">Nuevo Reporte</string>
     <string name="tipo_incidencia_label">Tipo de Incidencia</string>
     <string name="ubicacion_tiempo_real">Tu Ubicación en Tiempo Real</string>
-    <string name="en_vivo">● EN VIVO</string>
+    <string name="en_vivo">● En vivo</string>
     <string name="referencia_direccion">Referencia o dirección</string>
     <string name="adjuntar_evidencia_subtitulo">Puedes subir fotos o videos del incidente</string>
     <string name="camara">Cámara</string>
@@ -175,15 +175,15 @@
     <string name="crear_cuenta_vecino">Crear cuenta de vecino</string>
     <string name="registro">Registro</string>
     <string name="completa_datos">Completa tus datos personales</string>
-    <string name="nombre">NOMBRE</string>
-    <string name="apellido">APELLIDO</string>
+    <string name="nombre">Nombre</string>
+    <string name="apellido">Apellido</string>
     <string name="dni">DNI</string>
-    <string name="fecha_nacimiento">FECHA DE NACIMIENTO</string>
-    <string name="correo_label">CORREO ELECTRÓNICO</string>
-    <string name="telefono_label">TELÉFONO</string>
-    <string name="direccion_label">DIRECCIÓN (OPCIONAL)</string>
-    <string name="contrasena_label">CONTRASEÑA</string>
-    <string name="confirmar_contrasena_label">CONFIRMAR CONTRASEÑA</string>
+    <string name="fecha_nacimiento">Fecha de nacimiento</string>
+    <string name="correo_label">Correo electrónico</string>
+    <string name="telefono_label">Teléfono</string>
+    <string name="direccion_label">Dirección (opcional)</string>
+    <string name="contrasena_label">Contraseña</string>
+    <string name="confirmar_contrasena_label">Confirmar contraseña</string>
     <string name="repite_contrasena">Repite tu contraseña</string>
     <string name="crear_cuenta">Crear Cuenta</string>
     <string name="ya_tienes_cuenta">¿Ya tienes cuenta?</string>

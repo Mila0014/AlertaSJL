@@ -176,7 +176,7 @@ fun LoginPage(
                     Spacer(modifier = Modifier.height(28.dp))
 
                     Text(
-                        text = "DNI O CORREO ELECTRÓNICO",
+                        text = "DNI o correo electrónico",
                         style = MaterialTheme.typography.labelSmall.copy(
                             color = onSurfaceVariantColor,
                             letterSpacing = 0.8.sp,
@@ -217,7 +217,7 @@ fun LoginPage(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "CONTRASEÑA",
+                            text = "Contraseña",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = onSurfaceVariantColor,
                                 letterSpacing = 0.8.sp,
@@ -521,7 +521,7 @@ private fun QuickActionCard(
             }
             Column {
                 Text(
-                    text = label.uppercase(),
+                    text = label,
                     style = MaterialTheme.typography.labelSmall.copy(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 9.sp
