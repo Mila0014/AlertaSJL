@@ -148,6 +148,7 @@ fun TerminosCondicionesDialog(
                         )
                     )
 
+                    // ── Sección 1: Sobre la Aplicación ───────────────────
                     TerminosSeccion(
                         numero = "1",
                         titulo = "Sobre la Aplicación",
@@ -157,13 +158,15 @@ fun TerminosCondicionesDialog(
                         onSurfaceColor = onSurfaceColor
                     ) {
                         TerminosParrafo(
-                            text = "SJL Alerta es una aplicación de seguridad ciudadana desarrollada para los vecinos del distrito de San Juan de Lurigancho. " +
-                                    "Su propósito es facilitar el reporte de incidencias, la comunicación con las autoridades locales y la mejora de la " +
-                                    "convivencia en el vecindario.",
+                            text = "SJL Alerta es una aplicación de seguridad ciudadana desarrollada para los vecinos del " +
+                                    "distrito de San Juan de Lurigancho. Su propósito es facilitar el reporte de incidencias " +
+                                    "(robos, incendios, personas en estado de ebriedad, entre otros), la comunicación con las " +
+                                    "autoridades locales y la mejora de la convivencia en el vecindario.",
                             color = onSurfaceVariant
                         )
                     }
 
+                    // ── Sección 2: Datos Recopilados ──────────────────────
                     TerminosSeccion(
                         numero = "2",
                         titulo = "Datos Recopilados",
@@ -178,150 +181,165 @@ fun TerminosCondicionesDialog(
                         )
                         TerminosItemLista(
                             items = listOf(
-                                "Datos de registro: nombre, apellido, DNI, fecha de nacimiento, correo electrónico, teléfono y dirección (opcional).",
-                                "Ubicación geográfica: utilizada exclusivamente al momento de crear un reporte de incidencia para asociarla a una zona geográfica.",
-                                "Acceso a la cámara y galería: utilizado únicamente para adjuntar fotografías o videos a los reportes ciudadanos.",
-                                "Contraseña: almacenada de forma segura mediante cifrado SHA-256; nunca se almacena en texto plano."
+                                "Datos de registro: nombre, apellido, DNI, fecha de nacimiento, correo electrónico, teléfono y dirección.",
+                                "Datos de ubicación: GPS para geolocalizar los incidentes reportados.",
+                                "Imágenes: fotos adjuntas como evidencia visual del incidente."
                             ),
                             color = onSurfaceVariant,
                             primaryColor = primaryColor
                         )
                         TerminosParrafo(
-                            text = "No recopilamos datos adicionales, no rastreamos tu actividad fuera de la aplicación, ni compartimos tu información con terceros con fines comerciales.",
+                            text = "Todos los datos se almacenan de forma segura en Microsoft Azure SQL Database, con cifrado " +
+                                    "en reposo y protección contra accesos no autorizados.",
                             color = onSurfaceVariant
                         )
                     }
 
+                    // ── Sección 3: Uso adecuado ───────────────────────────
                     TerminosSeccion(
                         numero = "3",
-                        titulo = "Uso de los Datos",
+                        titulo = "Uso Adecuado de la Aplicación",
                         icono = Icons.Default.Shield,
                         primaryColor = primaryColor,
                         primaryContainer = primaryContainer,
                         onSurfaceColor = onSurfaceColor
                     ) {
                         TerminosParrafo(
-                            text = "Los datos proporcionados serán utilizados exclusivamente para:",
+                            text = "El usuario se compromete a utilizar SJL Alerta únicamente para reportar incidentes reales " +
+                                    "(robos, incendios, personas en estado de ebriedad en la vía pública, etc.). No se permite:",
                             color = onSurfaceVariant
                         )
                         TerminosItemLista(
                             items = listOf(
-                                "Identificarte como vecino registrado del distrito.",
-                                "Gestionar y dar seguimiento a los reportes de incidencias que realices.",
-                                "Notificarte sobre el estado de tus reportes.",
-                                "Mejorar los servicios de seguridad ciudadana del municipio."
+                                "Enviar reportes falsos, engañosos o malintencionados.",
+                                "Utilizar la aplicación para acosar, difamar o dañar a otros usuarios.",
+                                "Intentar acceder a cuentas de otros vecinos.",
+                                "Utilizar la aplicación para actividades ilegales."
                             ),
                             color = onSurfaceVariant,
                             primaryColor = primaryColor
                         )
+                        TerminosParrafo(
+                            text = "El uso inadecuado de la aplicación puede generar la suspensión temporal o definitiva de la cuenta del usuario.",
+                            color = onSurfaceVariant
+                        )
                     }
 
+                    // ── Sección 4: Responsabilidad del Usuario ────────────
                     TerminosSeccion(
                         numero = "4",
-                        titulo = "Almacenamiento en Azure",
-                        icono = Icons.Default.Cloud,
-                        primaryColor = primaryColor,
-                        primaryContainer = primaryContainer,
-                        onSurfaceColor = onSurfaceColor
-                    ) {
-                        TerminosParrafo(
-                            text = "Tu información personal y los reportes que realices serán almacenados de forma segura en servidores de Microsoft Azure, " +
-                                    "una plataforma en la nube con altos estándares de seguridad y disponibilidad. " +
-                                    "El acceso a dicha información está restringido al personal autorizado del sistema SJL Alerta.",
-                            color = onSurfaceVariant
-                        )
-                        TerminosParrafo(
-                            text = "Al aceptar el almacenamiento de tus datos, autorizas expresamente el guardado y tratamiento de tu información personal " +
-                                    "en la base de datos de la plataforma con el propósito descrito en estos términos.",
-                            color = onSurfaceVariant
-                        )
-                    }
-
-                    TerminosSeccion(
-                        numero = "5",
-                        titulo = "Permisos del Dispositivo",
-                        icono = Icons.Default.PhoneAndroid,
-                        primaryColor = primaryColor,
-                        primaryContainer = primaryContainer,
-                        onSurfaceColor = onSurfaceColor
-                    ) {
-                        TerminosParrafo(
-                            text = "La aplicación solicitará los siguientes permisos del dispositivo:",
-                            color = onSurfaceVariant
-                        )
-                        TerminosItemLista(
-                            items = listOf(
-                                "Ubicación (solo mientras la app está en uso): para geolocalizar los reportes.",
-                                "Cámara: para capturar evidencia fotográfica al hacer un reporte.",
-                                "Almacenamiento / Galería: para seleccionar imágenes existentes al adjuntar evidencia.",
-                                "Internet: para sincronizar reportes y datos con el servidor."
-                            ),
-                            color = onSurfaceVariant,
-                            primaryColor = primaryColor
-                        )
-                        TerminosParrafo(
-                            text = "Puedes revocar estos permisos en cualquier momento desde la configuración de tu dispositivo. " +
-                                    "Ten en cuenta que revocarlos puede limitar el funcionamiento de ciertas características.",
-                            color = onSurfaceVariant
-                        )
-                    }
-
-                    TerminosSeccion(
-                        numero = "6",
                         titulo = "Responsabilidad del Usuario",
                         icono = Icons.Default.PersonOutline,
                         primaryColor = primaryColor,
                         primaryContainer = primaryContainer,
                         onSurfaceColor = onSurfaceColor
                     ) {
+                        TerminosItemLista(
+                            items = listOf(
+                                "Veracidad de los reportes: el usuario es el único responsable de la veracidad de los reportes enviados.",
+                                "Confidencialidad de la cuenta: el usuario es responsable de mantener segura su contraseña y no compartirla con terceros.",
+                                "Notificación: el usuario debe notificar inmediatamente sobre cualquier uso no autorizado de su cuenta."
+                            ),
+                            color = onSurfaceVariant,
+                            primaryColor = primaryColor
+                        )
                         TerminosParrafo(
-                            text = "Al usar SJL Alerta, el usuario se compromete a:",
+                            text = "SJL Alerta no se hace responsable por el mal uso que se dé a la información reportada ni " +
+                                    "por las consecuencias de reportes falsos.",
+                            color = onSurfaceVariant
+                        )
+                    }
+
+                    // ── Sección 5: Privacidad y Protección de Datos ───────
+                    TerminosSeccion(
+                        numero = "5",
+                        titulo = "Privacidad y Protección de Datos",
+                        icono = Icons.Default.Lock,
+                        primaryColor = primaryColor,
+                        primaryContainer = primaryContainer,
+                        onSurfaceColor = onSurfaceColor
+                    ) {
+                        TerminosParrafo(
+                            text = "Los datos personales recopilados serán utilizados exclusivamente para:",
                             color = onSurfaceVariant
                         )
                         TerminosItemLista(
                             items = listOf(
-                                "Proporcionar información veraz y actualizada al momento del registro.",
-                                "No realizar reportes falsos, malintencionados o con fines de perjudicar a terceros.",
-                                "Mantener la confidencialidad de sus credenciales de acceso.",
-                                "Utilizar la aplicación exclusivamente con fines de seguridad ciudadana."
+                                "Identificar al vecino que realiza el reporte.",
+                                "Autenticar el inicio de sesión.",
+                                "Geolocalizar los incidentes.",
+                                "Contactar al usuario si es necesario."
+                            ),
+                            color = onSurfaceVariant,
+                            primaryColor = primaryColor
+                        )
+                        TerminosParrafo(
+                            text = "Los datos personales no serán compartidos con terceros sin el consentimiento del usuario, " +
+                                    "excepto por requerimiento legal de las autoridades competentes.",
+                            color = onSurfaceVariant
+                        )
+                    }
+
+                    // ── Sección 6: Cancelación de la Cuenta ──────────────
+                    TerminosSeccion(
+                        numero = "6",
+                        titulo = "Cancelación de la Cuenta",
+                        icono = Icons.Default.PersonOff,
+                        primaryColor = primaryColor,
+                        primaryContainer = primaryContainer,
+                        onSurfaceColor = onSurfaceColor
+                    ) {
+                        TerminosParrafo(
+                            text = "El usuario puede solicitar la cancelación de su cuenta en cualquier momento escribiendo al " +
+                                    "correo de soporte. Una vez cancelada la cuenta:",
+                            color = onSurfaceVariant
+                        )
+                        TerminosItemLista(
+                            items = listOf(
+                                "Se eliminarán sus datos personales de la base de datos.",
+                                "Se eliminarán sus reportes asociados.",
+                                "El proceso de eliminación se completará dentro de los 30 días posteriores a la solicitud."
                             ),
                             color = onSurfaceVariant,
                             primaryColor = primaryColor
                         )
                     }
 
+                    // ── Sección 7: Modificaciones de los Términos ─────────
                     TerminosSeccion(
                         numero = "7",
-                        titulo = "Menores de Edad",
-                        icono = Icons.Default.ChildCare,
-                        primaryColor = primaryColor,
-                        primaryContainer = primaryContainer,
-                        onSurfaceColor = onSurfaceColor
-                    ) {
-                        TerminosParrafo(
-                            text = "La aplicación SJL Alerta está dirigida exclusivamente a mayores de 18 años. " +
-                                    "No recopilamos intencionalmente datos de menores de edad. " +
-                                    "Si eres menor de edad, no debes registrarte ni usar esta aplicación.",
-                            color = onSurfaceVariant
-                        )
-                    }
-
-                    TerminosSeccion(
-                        numero = "8",
-                        titulo = "Modificaciones",
+                        titulo = "Modificaciones de los Términos",
                         icono = Icons.Default.Edit,
                         primaryColor = primaryColor,
                         primaryContainer = primaryContainer,
                         onSurfaceColor = onSurfaceColor
                     ) {
                         TerminosParrafo(
-                            text = "Nos reservamos el derecho de actualizar estos Términos y Condiciones en cualquier momento. " +
-                                    "Las modificaciones serán notificadas a través de la propia aplicación. " +
-                                    "El uso continuado de SJL Alerta tras la publicación de cambios implica la aceptación de los nuevos términos.",
+                            text = "SJL Alerta se reserva el derecho de modificar estos términos y condiciones en cualquier " +
+                                    "momento. Los cambios serán notificados a través de la aplicación o por correo electrónico. " +
+                                    "El uso continuado de la aplicación después de dichos cambios constituye la aceptación de los nuevos términos.",
                             color = onSurfaceVariant
                         )
                     }
 
+                    // ── Sección 8: Legislación Aplicable ──────────────────
+                    TerminosSeccion(
+                        numero = "8",
+                        titulo = "Legislación Aplicable",
+                        icono = Icons.Default.AccountBalance,
+                        primaryColor = primaryColor,
+                        primaryContainer = primaryContainer,
+                        onSurfaceColor = onSurfaceColor
+                    ) {
+                        TerminosParrafo(
+                            text = "Estos términos y condiciones se rigen por las leyes de la República del Perú. Cualquier " +
+                                    "disputa relacionada con estos términos será sometida a la jurisdicción de los tribunales " +
+                                    "de Lima, Perú.",
+                            color = onSurfaceVariant
+                        )
+                    }
+
+                    // ── Sección 9: Contacto ────────────────────────────────
                     TerminosSeccion(
                         numero = "9",
                         titulo = "Contacto",
@@ -331,9 +349,33 @@ fun TerminosCondicionesDialog(
                         onSurfaceColor = onSurfaceColor
                     ) {
                         TerminosParrafo(
-                            text = "Para consultas sobre el tratamiento de tus datos o el funcionamiento de la aplicación, " +
-                                    "puedes comunicarte con el equipo de SJL Alerta a través de los canales oficiales de la " +
-                                    "Municipalidad de San Juan de Lurigancho.",
+                            text = "Si el usuario tiene preguntas sobre estos términos y condiciones, puede contactar a los " +
+                                    "administradores de SJL Alerta a través del correo electrónico:",
+                            color = onSurfaceVariant
+                        )
+                        Text(
+                            text = "📧 soporte@alertasjl.com",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = primaryColor,
+                                fontWeight = FontWeight.SemiBold,
+                                lineHeight = 20.sp
+                            ),
+                            modifier = Modifier.padding(start = 4.dp, top = 2.dp)
+                        )
+                    }
+
+                    // ── Sección 10: Aceptación de los Términos ────────────
+                    TerminosSeccion(
+                        numero = "10",
+                        titulo = "Aceptación de los Términos",
+                        icono = Icons.Default.CheckCircle,
+                        primaryColor = primaryColor,
+                        primaryContainer = primaryContainer,
+                        onSurfaceColor = onSurfaceColor
+                    ) {
+                        TerminosParrafo(
+                            text = "Al registrarse en SJL Alerta, el usuario declara haber leído, comprendido y aceptado la " +
+                                    "totalidad de los presentes términos y condiciones.",
                             color = onSurfaceVariant
                         )
                     }
