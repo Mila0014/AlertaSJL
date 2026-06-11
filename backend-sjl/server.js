@@ -448,7 +448,7 @@ app.post("/api/usuarios/nueva-contrasena", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-s
+
 // Health check
 app.get("/", (req, res) => res.json({ estado: "API SJL Alerta funcionando ✅" }));
 
