@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.sp
 import com.example.sjl_alert_v4.R
 import com.example.sjl_alert_v4.red.LoginRequest
 import com.example.sjl_alert_v4.red.RetrofitClient
+import com.example.sjl_alert_v4.modelos.AppDatabase
+import com.example.sjl_alert_v4.modelos.Usuario
 import com.example.sjl_alert_v4.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -59,6 +61,7 @@ fun LoginPage(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val db = remember { AppDatabase.getInstance(context) }
 
     var dniOrEmail by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -369,10 +372,26 @@ fun LoginPage(
                                                         val usuario = response.body()?.usuario
                                                         if (usuario != null) {
                                                             prefManager.resetearIntentosFallidos()
+                                                            // Guardar usuario completo en Room local (con teléfono)
+                                                            db.usuarioDao().insertarOActualizar(
+                                                                Usuario(
+                                                                    id             = usuario.id,
+                                                                    nombre         = usuario.nombre,
+                                                                    apellido       = usuario.apellido,
+                                                                    dni            = usuario.dni,
+                                                                    correo         = usuario.correo,
+                                                                    telefono       = usuario.telefono,
+                                                                    contrasena     = "", // hash no se expone desde el server
+                                                                    direccion      = usuario.direccion,
+                                                                    fechaRegistro  = System.currentTimeMillis(),
+                                                                    fechaNacimiento = ""
+                                                                )
+                                                            )
                                                             prefManager.guardarSesion(
                                                                 usuarioId      = usuario.id,
                                                                 nombre         = usuario.nombre,
                                                                 correo         = usuario.correo,
+                                                                telefono       = usuario.telefono,
                                                                 mantenerSesion = rememberMe
                                                             )
                                                             onLoginSuccess()

@@ -11,6 +11,9 @@ interface UsuarioDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertarUsuario(usuario: Usuario): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertarOActualizar(usuario: Usuario): Long
+
     @Query("SELECT * FROM usuarios WHERE dni = :dni OR correo = :correo LIMIT 1")
     suspend fun buscarPorDniOCorreo(dni: String, correo: String): Usuario?
 
