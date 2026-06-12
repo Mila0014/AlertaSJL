@@ -809,7 +809,7 @@ fun BottomNavigationBar(
     onReportsClick: () -> Unit,
     onDirectoryClick: () -> Unit
 ) {
-    Surface(modifier = Modifier.fillMaxWidth(), shadowElevation = 8.dp,
+    Surface(modifier = Modifier.fillMaxWidth().navigationBarsPadding(), shadowElevation = 8.dp,
         color = MaterialTheme.colorScheme.surface) {
         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceAround,
