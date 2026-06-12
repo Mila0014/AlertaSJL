@@ -44,8 +44,9 @@ data class TerminosAceptacion(
 // ─────────────────────────────────────────────────────────────────────────────
 @Composable
 fun TerminosCondicionesDialog(
+    soloLectura: Boolean = false,
     onDismiss: () -> Unit,
-    onAceptar: (TerminosAceptacion) -> Unit
+    onAceptar: (TerminosAceptacion) -> Unit = {}
 ) {
     val primaryColor      = MaterialTheme.colorScheme.primary
     val surfaceColor      = MaterialTheme.colorScheme.surface
@@ -364,22 +365,6 @@ fun TerminosCondicionesDialog(
                         )
                     }
 
-                    // ── Sección 10: Aceptación de los Términos ────────────
-                    TerminosSeccion(
-                        numero = "10",
-                        titulo = "Aceptación de los Términos",
-                        icono = Icons.Default.CheckCircle,
-                        primaryColor = primaryColor,
-                        primaryContainer = primaryContainer,
-                        onSurfaceColor = onSurfaceColor
-                    ) {
-                        TerminosParrafo(
-                            text = "Al registrarse en SJL Alerta, el usuario declara haber leído, comprendido y aceptado la " +
-                                    "totalidad de los presentes términos y condiciones.",
-                            color = onSurfaceVariant
-                        )
-                    }
-
                     Spacer(modifier = Modifier.height(4.dp))
                 }
 
@@ -394,119 +379,10 @@ fun TerminosCondicionesDialog(
                     HorizontalDivider(color = outlineColor.copy(alpha = 0.3f))
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    // Error si intenta aceptar sin marcar
-                    if (mostrarErrorCheckbox) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.errorContainer)
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Warning,
-                                contentDescription = null,
-                                tint = errorColor,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = "Debes aceptar ambas casillas para continuar con el registro.",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                            )
-                        }
-                    }
-
-                    // ── Checkbox 1: Términos y Condiciones ────────────────
-                    TerminosCheckboxRow(
-                        checked = aceptaTerminos,
-                        onCheckedChange = {
-                            aceptaTerminos = it
-                            if (it) mostrarErrorCheckbox = false
-                        },
-                        primaryColor = primaryColor,
-                        outlineColor = outlineColor,
-                        onSurfaceColor = onSurfaceColor
-                    ) {
-                        Text(
-                            buildAnnotatedString {
-                                append("He leído y acepto los ")
-                                withStyle(SpanStyle(color = primaryColor, fontWeight = FontWeight.Bold)) {
-                                    append("Términos y Condiciones")
-                                }
-                                append(" de uso de SJL Alerta.")
-                            },
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = onSurfaceColor,
-                                lineHeight = 18.sp
-                            )
-                        )
-                    }
-
-                    // ── Checkbox 2: Almacenamiento de datos en Azure ───────
-                    TerminosCheckboxRow(
-                        checked = aceptaAlmacenamiento,
-                        onCheckedChange = {
-                            aceptaAlmacenamiento = it
-                            if (it) mostrarErrorCheckbox = false
-                        },
-                        primaryColor = primaryColor,
-                        outlineColor = outlineColor,
-                        onSurfaceColor = onSurfaceColor
-                    ) {
-                        Text(
-                            buildAnnotatedString {
-                                append("Autorizo el ")
-                                withStyle(SpanStyle(color = primaryColor, fontWeight = FontWeight.Bold)) {
-                                    append("registro y almacenamiento")
-                                }
-                                append(" de mis datos personales en la base de datos de SJL Alerta (Microsoft Azure).")
-                            },
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = onSurfaceColor,
-                                lineHeight = 18.sp
-                            )
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    // ── Botones de acción ─────────────────────────────────
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = onDismiss,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = onSurfaceVariant
-                            )
-                        ) {
-                            Text(
-                                text = "Cancelar",
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-
+                    if (soloLectura) {
                         Button(
-                            onClick = {
-                                if (!aceptaTerminos || !aceptaAlmacenamiento) {
-                                    mostrarErrorCheckbox = true
-                                } else {
-                                    onAceptar(
-                                        TerminosAceptacion(
-                                            aceptaTerminos = true,
-                                            aceptaAlmacenamientoDatos = true
-                                        )
-                                    )
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
+                            onClick = onDismiss,
+                            modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = primaryColor,
@@ -520,9 +396,141 @@ fun TerminosCondicionesDialog(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Aceptar",
+                                text = "Entendido",
                                 fontWeight = FontWeight.Bold
                             )
+                        }
+                    } else {
+                        // Error si intenta aceptar sin marcar
+                        if (mostrarErrorCheckbox) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.errorContainer)
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = errorColor,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "Debes aceptar ambas casillas para continuar con el registro.",
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                )
+                            }
+                        }
+
+                        // ── Checkbox 1: Términos y Condiciones ────────────────
+                        TerminosCheckboxRow(
+                            checked = aceptaTerminos,
+                            onCheckedChange = {
+                                aceptaTerminos = it
+                                if (it) mostrarErrorCheckbox = false
+                            },
+                            primaryColor = primaryColor,
+                            outlineColor = outlineColor,
+                            onSurfaceColor = onSurfaceColor
+                        ) {
+                            Text(
+                                buildAnnotatedString {
+                                    append("He leído y acepto los ")
+                                    withStyle(SpanStyle(color = primaryColor, fontWeight = FontWeight.Bold)) {
+                                        append("Términos y Condiciones")
+                                    }
+                                    append(" de uso de SJL Alerta.")
+                                },
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = onSurfaceColor,
+                                    lineHeight = 18.sp
+                                )
+                            )
+                        }
+
+                        // ── Checkbox 2: Almacenamiento de datos en Azure ───────
+                        TerminosCheckboxRow(
+                            checked = aceptaAlmacenamiento,
+                            onCheckedChange = {
+                                aceptaAlmacenamiento = it
+                                if (it) mostrarErrorCheckbox = false
+                            },
+                            primaryColor = primaryColor,
+                            outlineColor = outlineColor,
+                            onSurfaceColor = onSurfaceColor
+                        ) {
+                            Text(
+                                buildAnnotatedString {
+                                    append("Autorizo el ")
+                                    withStyle(SpanStyle(color = primaryColor, fontWeight = FontWeight.Bold)) {
+                                        append("registro y almacenamiento")
+                                    }
+                                    append(" de mis datos personales en la base de datos de SJL Alerta (Microsoft Azure).")
+                                },
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = onSurfaceColor,
+                                    lineHeight = 18.sp
+                                )
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        // ── Botones de acción ─────────────────────────────────
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = onDismiss,
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = onSurfaceVariant
+                                )
+                            ) {
+                                Text(
+                                    text = "Cancelar",
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    if (!aceptaTerminos || !aceptaAlmacenamiento) {
+                                        mostrarErrorCheckbox = true
+                                    } else {
+                                        onAceptar(
+                                            TerminosAceptacion(
+                                                aceptaTerminos = true,
+                                                aceptaAlmacenamientoDatos = true
+                                            )
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = primaryColor,
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Aceptar",
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }

@@ -57,6 +57,7 @@ fun AjustesPrefs(
     val usuarioId = preferenceManager.getSesionUsuarioId()
     val sesionNombre = preferenceManager.getSesionNombre()
     val sesionCorreo = preferenceManager.getSesionCorreo()
+    val sesionTelefono = preferenceManager.getSesionTelefono()
 
     // ── Control de diálogos ───────────────────────────────────────────────────
     var mostrarDialogoTelefono by remember { mutableStateOf(false) }
@@ -64,9 +65,11 @@ fun AjustesPrefs(
     var mostrarDialogoContrasena by remember { mutableStateOf(false) }
     var mostrarDialogoIdioma by remember { mutableStateOf(false) }
     var mostrarDialogoLogout by remember { mutableStateOf(false) }
+    var mostrarDialogoTerminos by remember { mutableStateOf(false) }
 
     // ── Datos cargados desde la DB ────────────────────────────────────────────
-    var telefonoActual by remember { mutableStateOf("") }
+    // Inicializamos desde SharedPrefs (instantáneo) y luego Room los confirma/actualiza
+    var telefonoActual by remember { mutableStateOf(sesionTelefono) }
     var correoActual by remember { mutableStateOf(sesionCorreo) }
     var edadUsuario by remember { mutableStateOf<Int?>(null) }
 
@@ -74,7 +77,7 @@ fun AjustesPrefs(
         if (usuarioId != -1) {
             val usuario = db.usuarioDao().buscarPorId(usuarioId)
             usuario?.let {
-                telefonoActual = it.telefono
+                if (it.telefono.isNotBlank()) telefonoActual = it.telefono
                 correoActual = it.correo
                 edadUsuario = calcularEdad(it.fechaNacimiento)
             }
@@ -120,6 +123,13 @@ fun AjustesPrefs(
                     try {
                         db.usuarioDao().actualizarTelefono(usuarioId, nuevoTelefono)
                         telefonoActual = nuevoTelefono
+                        // También actualizar SharedPrefs para que persista
+                        preferenceManager.guardarSesion(
+                            usuarioId = usuarioId,
+                            nombre = sesionNombre,
+                            correo = correoActual,
+                            telefono = nuevoTelefono
+                        )
                         Toast.makeText(context, strTelefonoActualizado, Toast.LENGTH_SHORT).show()
                     } catch (e: Exception) {
                         Toast.makeText(context, strErrorActualizar, Toast.LENGTH_SHORT).show()
@@ -152,7 +162,12 @@ fun AjustesPrefs(
                     try {
                         db.usuarioDao().actualizarCorreo(usuarioId, nuevoCorreo.trim().lowercase())
                         correoActual = nuevoCorreo.trim().lowercase()
-                        preferenceManager.guardarSesion(usuarioId, sesionNombre, correoActual)
+                        preferenceManager.guardarSesion(
+                            usuarioId = usuarioId,
+                            nombre = sesionNombre,
+                            correo = correoActual,
+                            telefono = telefonoActual  // preservar teléfono
+                        )
                         Toast.makeText(context, strCorreoActualizado, Toast.LENGTH_SHORT).show()
                     } catch (e: Exception) {
                         Toast.makeText(context, strErrorActualizar, Toast.LENGTH_SHORT).show()
@@ -218,6 +233,14 @@ fun AjustesPrefs(
                     Text(stringResource(R.string.cancelar))
                 }
             }
+        )
+    }
+
+    // ── DIÁLOGO: Términos y Condiciones (Solo Lectura) ─────────────────────────
+    if (mostrarDialogoTerminos) {
+        TerminosCondicionesDialog(
+            soloLectura = true,
+            onDismiss = { mostrarDialogoTerminos = false }
         )
     }
 
@@ -497,13 +520,13 @@ fun AjustesPrefs(
                 SettingsItem(
                     icon = Icons.Default.Info,
                     title = stringResource(R.string.terminos),
-                    onClick = { }
+                    onClick = { mostrarDialogoTerminos = true }
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = surfaceContainerHighColor)
                 SettingsItem(
                     icon = Icons.Default.PrivacyTip,
                     title = stringResource(R.string.privacidad),
-                    onClick = { }
+                    onClick = { mostrarDialogoTerminos = true }
                 )
             }
 
