@@ -38,7 +38,14 @@ fun VerificarCodigoContent(
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    
     val primaryColor = MaterialTheme.colorScheme.primary
+    val onBackground = MaterialTheme.colorScheme.onBackground
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val surfaceContainerLowColor = MaterialTheme.colorScheme.surfaceContainerLow
+    val surfaceContainerHighColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val surfaceContainerHighestColor = MaterialTheme.colorScheme.surfaceContainerHighest
 
     Column(
         modifier = Modifier
@@ -68,14 +75,14 @@ fun VerificarCodigoContent(
 
         Text(
             text = "Verificar Código",
-            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, color = PrimaryBlue)
+            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, color = primaryColor)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
             text = "Hemos enviado un código de 6 dígitos a $correo. Ingrésalo a continuación.",
-            style = MaterialTheme.typography.bodyLarge.copy(color = Color.Gray, textAlign = TextAlign.Center)
+            style = MaterialTheme.typography.bodyLarge.copy(color = onSurfaceVariantColor, textAlign = TextAlign.Center)
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -91,7 +98,15 @@ fun VerificarCodigoContent(
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("Ingresa el código de 6 dígitos") },
             shape = RoundedCornerShape(12.dp),
-            singleLine = true
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = surfaceContainerHighestColor,
+                unfocusedContainerColor = surfaceContainerLowColor,
+                unfocusedBorderColor = Color.Transparent,
+                focusedBorderColor = primaryColor,
+                focusedTextColor = onSurfaceColor,
+                unfocusedTextColor = onSurfaceColor
+            )
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -122,7 +137,7 @@ fun VerificarCodigoContent(
             },
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = DeepRed),
+            colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
             enabled = !isLoading
         ) {
             if (isLoading) {
@@ -134,28 +149,28 @@ fun VerificarCodigoContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Text(text = "¿No recibiste el código?", color = Color.Gray, fontSize = 14.sp)
+        Text(text = "¿No recibiste el código?", color = onSurfaceVariantColor, fontSize = 14.sp)
         Text(
             text = "Reenviar",
             fontWeight = FontWeight.Bold,
-            color = DeepRed,
+            color = primaryColor,
             modifier = Modifier.padding(top = 4.dp).clickable { onReenviar() }
         )
 
         Spacer(modifier = Modifier.weight(1f))
 
         Box(
-            modifier = Modifier.size(60.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFF3F4F6)),
+            modifier = Modifier.size(60.dp).clip(RoundedCornerShape(12.dp)).background(surfaceContainerHighColor),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.LightGray)
+            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = onSurfaceVariantColor)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "SEGURIDAD DIGITAL SJL • 2024",
-            style = MaterialTheme.typography.labelSmall.copy(color = Color.LightGray, letterSpacing = 1.sp)
+            text = "SEGURIDAD DIGITAL SJL • 2026",
+            style = MaterialTheme.typography.labelSmall.copy(color = onSurfaceVariantColor, letterSpacing = 1.sp)
         )
         Spacer(modifier = Modifier.height(20.dp))
     }

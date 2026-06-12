@@ -44,6 +44,15 @@ fun NuevaContraContent(
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val surfaceContainerLowColor = MaterialTheme.colorScheme.surfaceContainerLow
+    val surfaceContainerHighColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val surfaceContainerHighestColor = MaterialTheme.colorScheme.surfaceContainerHighest
+    val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
 
     Column(
         modifier = Modifier
@@ -56,7 +65,7 @@ fun NuevaContraContent(
 
         Text(
             text = "Nueva Contraseña",
-            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, color = PrimaryBlue),
+            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, color = primaryColor),
             modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start
         )
 
@@ -64,7 +73,7 @@ fun NuevaContraContent(
 
         Text(
             text = "Crea una contraseña segura para proteger tu cuenta.",
-            style = MaterialTheme.typography.bodyLarge.copy(color = Color.Gray),
+            style = MaterialTheme.typography.bodyLarge.copy(color = onSurfaceVariantColor),
             modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start
         )
 
@@ -78,11 +87,11 @@ fun NuevaContraContent(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA).copy(alpha = 0.5f)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            colors = CardDefaults.cardColors(containerColor = surfaceColor),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Nueva Contraseña", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold))
+                Text("Nueva Contraseña", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold, color = onSurfaceColor))
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = nuevaContra,
@@ -91,15 +100,23 @@ fun NuevaContraContent(
                     visualTransformation = if (contraVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = { contraVisible = !contraVisible }) {
-                            Icon(if (contraVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, null)
+                            Icon(if (contraVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, null, tint = onSurfaceVariantColor)
                         }
                     },
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = surfaceContainerHighestColor,
+                        unfocusedContainerColor = surfaceContainerLowColor,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedBorderColor = primaryColor,
+                        focusedTextColor = onSurfaceColor,
+                        unfocusedTextColor = onSurfaceColor
+                    )
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("Confirmar Contraseña", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold))
+                Text("Confirmar Contraseña", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold, color = onSurfaceColor))
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = confirmarContra,
@@ -108,10 +125,18 @@ fun NuevaContraContent(
                     visualTransformation = if (confirmarContraVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = { confirmarContraVisible = !confirmarContraVisible }) {
-                            Icon(if (confirmarContraVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, null)
+                            Icon(if (confirmarContraVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, null, tint = onSurfaceVariantColor)
                         }
                     },
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = surfaceContainerHighestColor,
+                        unfocusedContainerColor = surfaceContainerLowColor,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedBorderColor = primaryColor,
+                        focusedTextColor = onSurfaceColor,
+                        unfocusedTextColor = onSurfaceColor
+                    )
                 )
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -148,7 +173,7 @@ fun NuevaContraContent(
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = DeepRed),
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
                     enabled = !isLoading
                 ) {
                     if (isLoading) {
@@ -163,17 +188,17 @@ fun NuevaContraContent(
         Spacer(modifier = Modifier.height(40.dp))
 
         Box(
-            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFDDE2F4)),
+            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(primaryContainerColor),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.Security, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(24.dp))
+            Icon(Icons.Default.Security, contentDescription = null, tint = primaryColor, modifier = Modifier.size(24.dp))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
             text = "Tus datos están protegidos por el sistema de seguridad encriptado de SJL Alerta Guard.",
-            style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray, textAlign = TextAlign.Center),
+            style = MaterialTheme.typography.bodySmall.copy(color = onSurfaceVariantColor, textAlign = TextAlign.Center),
             modifier = Modifier.padding(horizontal = 24.dp)
         )
         Spacer(modifier = Modifier.height(20.dp))

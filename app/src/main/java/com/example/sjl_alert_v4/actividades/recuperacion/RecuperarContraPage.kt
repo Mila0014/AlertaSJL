@@ -1,6 +1,8 @@
 package com.example.sjl_alert_v4.actividades.recuperacion
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -38,28 +40,56 @@ fun RecuperarContraPage(
     var correoGuardado by remember { mutableStateOf("") }
     var codigoGuardado by remember { mutableStateOf("") }
 
-    when (paso) {
-        1 -> RecuperarContraContent(
-            onEnviarCodigo = { correo ->
-                correoGuardado = correo
-                paso = 2
-            },
-            onLoginClick = onLoginClick,
-            onBack = onBack
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(backgroundColor)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+    ) {
+        // Blobs decorativos
+        Box(
+            modifier = Modifier
+                .size(300.dp)
+                .offset(x = 150.dp, y = (-100).dp)
+                .background(color = primaryContainerColor.copy(alpha = 0.2f), shape = CircleShape)
+                .align(Alignment.TopEnd)
         )
-        2 -> VerificarCodigoContent(
-            correo = correoGuardado,
-            onVerificar = { codigo ->
-                codigoGuardado = codigo
-                paso = 3
-            },
-            onReenviar = { paso = 1 }
+        Box(
+            modifier = Modifier
+                .size(400.dp)
+                .offset(x = (-120).dp, y = 100.dp)
+                .background(color = primaryColor.copy(alpha = 0.08f), shape = CircleShape)
+                .align(Alignment.BottomStart)
         )
-        3 -> NuevaContraContent(
-            correo = correoGuardado,
-            codigo = codigoGuardado,
-            onActualizar = onLoginClick
-        )
+
+        when (paso) {
+            1 -> RecuperarContraContent(
+                onEnviarCodigo = { correo ->
+                    correoGuardado = correo
+                    paso = 2
+                },
+                onLoginClick = onLoginClick,
+                onBack = onBack
+            )
+            2 -> VerificarCodigoContent(
+                correo = correoGuardado,
+                onVerificar = { codigo ->
+                    codigoGuardado = codigo
+                    paso = 3
+                },
+                onReenviar = { paso = 1 }
+            )
+            3 -> NuevaContraContent(
+                correo = correoGuardado,
+                codigo = codigoGuardado,
+                onActualizar = onLoginClick
+            )
+        }
     }
 }
 
@@ -74,7 +104,15 @@ fun RecuperarContraContent(
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    
     val primaryColor = MaterialTheme.colorScheme.primary
+    val onBackground = MaterialTheme.colorScheme.onBackground
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val surfaceContainerLowColor = MaterialTheme.colorScheme.surfaceContainerLow
+    val surfaceContainerHighColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val surfaceContainerHighestColor = MaterialTheme.colorScheme.surfaceContainerHighest
 
     Column(
         modifier = Modifier
@@ -116,7 +154,7 @@ fun RecuperarContraContent(
         Text(
             text = "Recuperar Contraseña",
             style = MaterialTheme.typography.headlineMedium.copy(
-                fontWeight = FontWeight.Bold, color = Color.Black
+                fontWeight = FontWeight.Bold, color = onBackground
             )
         )
 
@@ -125,7 +163,7 @@ fun RecuperarContraContent(
         Text(
             text = "Ingresa tu correo electrónico registrado para enviarte un código de verificación.",
             style = MaterialTheme.typography.bodyLarge.copy(
-                color = Color.Gray, textAlign = TextAlign.Center
+                color = onSurfaceVariantColor, textAlign = TextAlign.Center
             ),
             modifier = Modifier.padding(horizontal = 8.dp)
         )
@@ -140,14 +178,14 @@ fun RecuperarContraContent(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = surfaceColor),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
                 Text(
                     text = "Correo electrónico",
                     style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.SemiBold, color = Color.DarkGray
+                        fontWeight = FontWeight.SemiBold, color = onSurfaceColor
                     )
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -157,14 +195,16 @@ fun RecuperarContraContent(
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("nombre@ejemplo.com") },
                     leadingIcon = {
-                        Icon(Icons.Default.Email, contentDescription = null, tint = Color.Gray)
+                        Icon(Icons.Default.Email, contentDescription = null, tint = onSurfaceVariantColor)
                     },
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFFF3F4F6),
-                        unfocusedContainerColor = Color(0xFFF3F4F6),
+                        focusedContainerColor = surfaceContainerHighestColor,
+                        unfocusedContainerColor = surfaceContainerLowColor,
                         unfocusedBorderColor = Color.Transparent,
-                        focusedBorderColor = PrimaryBlue
+                        focusedBorderColor = primaryColor,
+                        focusedTextColor = onSurfaceColor,
+                        unfocusedTextColor = onSurfaceColor
                     )
                 )
 
@@ -196,7 +236,7 @@ fun RecuperarContraContent(
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
                     enabled = !isLoading
                 ) {
                     if (isLoading) {
@@ -214,11 +254,11 @@ fun RecuperarContraContent(
         Spacer(modifier = Modifier.height(32.dp))
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            Text("¿Recordaste tu contraseña? ", color = Color.Gray)
+            Text("¿Recordaste tu contraseña? ", color = onSurfaceVariantColor)
             Text(
                 text = "Inicia sesión",
                 fontWeight = FontWeight.Bold,
-                color = PrimaryBlue,
+                color = primaryColor,
                 modifier = Modifier.clickable { onLoginClick() }
             )
         }
@@ -230,12 +270,12 @@ fun RecuperarContraContent(
             horizontalArrangement = Arrangement.Center
         ) {
             Icon(Icons.Default.VerifiedUser, contentDescription = null,
-                modifier = Modifier.size(16.dp), tint = Color.Gray)
+                modifier = Modifier.size(16.dp), tint = onSurfaceVariantColor)
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "SISTEMA DE SEGURIDAD ENCRIPTADO",
                 style = MaterialTheme.typography.labelSmall.copy(
-                    color = Color.Gray, letterSpacing = 1.sp)
+                    color = onSurfaceVariantColor, letterSpacing = 1.sp)
             )
         }
         Spacer(modifier = Modifier.height(20.dp))
