@@ -5,8 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -34,6 +33,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // Verificar sesión UNA Única vez al arrancar la app (no en cada recomposición)
+        val prefManager = PreferenceManager(this)
+        prefManager.verificarSesionAlAbrir()
+
         // Fuerza apertura de la DB para que App Inspection pueda conectarse
         lifecycleScope.launch(Dispatchers.IO) {
             AppDatabase.getInstance(this@MainActivity).openHelper.readableDatabase
@@ -54,20 +57,37 @@ class MainActivity : ComponentActivity() {
             syncRequest
         )
 
+        // ── Estados reactivos para el tema: cambian el tema SIN recrear la Activity
+        val isDarkMode = mutableStateOf(prefManager.isDarkMode())
+        val fontSizePref = mutableStateOf(prefManager.getFontSize())
+
         setContent {
-            SJL_Alert_v4Theme {
-                AppNavigation()
+            // Al cambiar isDarkMode o fontSizePref, Compose recompone solo el tema
+            // sin destruir la Activity, preservando la sesión intacta.
+            SJL_Alert_v4Theme(
+                darkTheme = isDarkMode.value,
+                fontSizePreference = fontSizePref.value
+            ) {
+                AppNavigation(
+                    onThemeChanged = {
+                        // Leer el valor actualizado de las prefs y reflejarlo en el estado
+                        isDarkMode.value = prefManager.isDarkMode()
+                        fontSizePref.value = prefManager.getFontSize()
+                    }
+                )
             }
         }
     }
 }
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(onThemeChanged: () -> Unit = {}) {
     val navController = rememberNavController()
     val context = LocalContext.current
     val prefManager = remember { PreferenceManager(context) }
 
+    // La verificación de sesión ya se hizo en MainActivity.onCreate();
+    // aquí solo leemos el destino inicial sin volver a borrar la sesión.
     val startDestination = if (prefManager.haySesionActiva()) "home" else "login"
 
     NavHost(navController = navController, startDestination = startDestination) {
@@ -190,9 +210,7 @@ fun AppNavigation() {
                     prefManager.cerrarSesion()
                     navController.navigate("cerrando_sesion") { popUpTo(0) { inclusive = true } }
                 },
-                onThemeChanged = {
-                    (context as? android.app.Activity)?.recreate()
-                }
+                onThemeChanged = onThemeChanged
             )
         }
 

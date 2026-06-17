@@ -53,19 +53,24 @@ private val DarkColorScheme = darkColorScheme(
 
 @Composable
 fun SJL_Alert_v4Theme(
+    // Parámetros opcionales: si se pasan, se usan directamente (modo reactivo).
+    // Si no se pasan, se leen de PreferenceManager (modo legacy / preview).
+    darkTheme: Boolean? = null,
+    fontSizePreference: Float? = null,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
     val preferenceManager = PreferenceManager(context)
 
-    // Lee las preferencias guardadas por el usuario
-    val darkTheme = preferenceManager.isDarkMode()
+    // Usa el valor externo si se proporcionó, de lo contrario lee las prefs
+    val isDark = darkTheme ?: preferenceManager.isDarkMode()
 
     // fontScale: 16f es el tamaño base (normal = 1.0f)
     // Ej: 14f → 0.875f (pequeño), 18f → 1.125f (grande), 22f → 1.375f (muy grande)
-    val fontScale = preferenceManager.getFontSize() / 16f
+    val fontSize = fontSizePreference ?: preferenceManager.getFontSize()
+    val fontScale = fontSize / 16f
 
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val colorScheme = if (isDark) DarkColorScheme else LightColorScheme
 
     // Cambia el color de la barra de estado según el tema
     val view = LocalView.current
@@ -73,7 +78,7 @@ fun SJL_Alert_v4Theme(
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDark
         }
     }
 

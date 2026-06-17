@@ -46,6 +46,28 @@ data class RegistroResponse(
     @SerializedName("error")   val error: String = ""
 )
 
+// ── DTOs de recuperación ───────────────────────────────────────────────────
+
+data class RecuperarRequest(
+    @SerializedName("correo") val correo: String
+)
+
+data class VerificarCodigoRequest(
+    @SerializedName("correo") val correo: String,
+    @SerializedName("codigo") val codigo: String
+)
+
+data class NuevaContrasenaRequest(
+    @SerializedName("correo")          val correo: String,
+    @SerializedName("codigo")          val codigo: String,
+    @SerializedName("nuevaContrasena") val nuevaContrasena: String
+)
+
+data class MensajeResponse(
+    @SerializedName("mensaje") val mensaje: String = "",
+    @SerializedName("error")   val error: String = ""
+)
+
 // ── Interfaz Retrofit ──────────────────────────────────────────────────────
 interface UsuarioApiService {
 
@@ -56,4 +78,16 @@ interface UsuarioApiService {
     // Login: POST /api/usuarios/login
     @POST("api/usuarios/login")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
+
+    // Recuperar contraseña paso 1: POST /api/usuarios/recuperar
+    @POST("api/usuarios/recuperar")
+    suspend fun recuperar(@Body request: RecuperarRequest): Response<MensajeResponse>
+
+    // Verificar código paso 2: POST /api/usuarios/verificar-codigo
+    @POST("api/usuarios/verificar-codigo")
+    suspend fun verificarCodigo(@Body request: VerificarCodigoRequest): Response<MensajeResponse>
+
+    // Nueva contraseña paso 3: POST /api/usuarios/nueva-contrasena
+    @POST("api/usuarios/nueva-contrasena")
+    suspend fun nuevaContrasena(@Body request: NuevaContrasenaRequest): Response<MensajeResponse>
 }

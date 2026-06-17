@@ -3,6 +3,8 @@ package com.example.sjl_alert_v4.actividades
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -15,9 +17,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -25,6 +31,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -138,6 +145,10 @@ fun RegisterPage(
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    // ── Estados para Términos y Condiciones ───────────────────────────────────
+    var mostrarDialogoTerminos by remember { mutableStateOf(false) }
+    var terminosAceptados by remember { mutableStateOf(TerminosAceptacion()) }
+
     // ── Colores dinámicos del tema activo ──────────────────────────────────────
     val backgroundColor = MaterialTheme.colorScheme.background
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -243,7 +254,7 @@ fun RegisterPage(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            RegisterFieldLabel("NOMBRE", onSurfaceVariantColor)
+                            RegisterFieldLabel("Nombre", onSurfaceVariantColor)
                             Spacer(modifier = Modifier.height(8.dp))
                             RegisterTextField(
                                 value = nombre,
@@ -262,7 +273,7 @@ fun RegisterPage(
                             )
                         }
                         Column(modifier = Modifier.weight(1f)) {
-                            RegisterFieldLabel("APELLIDO", onSurfaceVariantColor)
+                            RegisterFieldLabel("Apellido", onSurfaceVariantColor)
                             Spacer(modifier = Modifier.height(8.dp))
                             RegisterTextField(
                                 value = apellido,
@@ -304,7 +315,7 @@ fun RegisterPage(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     // ── FECHA DE NACIMIENTO ────────────────────────────────
-                    RegisterFieldLabel("FECHA DE NACIMIENTO", onSurfaceVariantColor)
+                    RegisterFieldLabel("Fecha de nacimiento", onSurfaceVariantColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -380,7 +391,7 @@ fun RegisterPage(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     // ── Correo ─────────────────────────────────────────────
-                    RegisterFieldLabel("CORREO ELECTRÓNICO", onSurfaceVariantColor)
+                    RegisterFieldLabel("Correo electrónico", onSurfaceVariantColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     RegisterTextField(
                         value = correo,
@@ -402,7 +413,7 @@ fun RegisterPage(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     // ── Teléfono ───────────────────────────────────────────
-                    RegisterFieldLabel("TELÉFONO", onSurfaceVariantColor)
+                    RegisterFieldLabel("Teléfono", onSurfaceVariantColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     RegisterTextField(
                         value = telefono,
@@ -424,7 +435,7 @@ fun RegisterPage(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     // ── Dirección ──────────────────────────────────────────
-                    RegisterFieldLabel("DIRECCIÓN (OPCIONAL)", onSurfaceVariantColor)
+                    RegisterFieldLabel("Dirección (opcional)", onSurfaceVariantColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     RegisterTextField(
                         value = direccion,
@@ -445,7 +456,7 @@ fun RegisterPage(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     // ── Contraseña ─────────────────────────────────────────
-                    RegisterFieldLabel("CONTRASEÑA", onSurfaceVariantColor)
+                    RegisterFieldLabel("Contraseña", onSurfaceVariantColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = contrasena,
@@ -481,7 +492,7 @@ fun RegisterPage(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     // ── Confirmar Contraseña ───────────────────────────────
-                    RegisterFieldLabel("CONFIRMAR CONTRASEÑA", onSurfaceVariantColor)
+                    RegisterFieldLabel("Confirmar contraseña", onSurfaceVariantColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = confirmarContrasena,
@@ -524,7 +535,165 @@ fun RegisterPage(
                         )
                     }
 
-                    if (errorMessage != null) {
+                    // ── Sección de Términos y Condiciones ──────────────────
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    HorizontalDivider(color = surfaceContainerHighColor)
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Botón para abrir el diálogo
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .border(
+                                width = 1.dp,
+                                color = if (terminosAceptados.puedeRegistrarse)
+                                    primaryColor.copy(alpha = 0.5f)
+                                else
+                                    surfaceContainerHighColor,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .background(
+                                if (terminosAceptados.puedeRegistrarse)
+                                    primaryColor.copy(alpha = 0.07f)
+                                else
+                                    surfaceContainerLowColor
+                            )
+                            .clickable { mostrarDialogoTerminos = true }
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Gavel,
+                            contentDescription = null,
+                            tint = if (terminosAceptados.puedeRegistrarse) primaryColor else onSurfaceVariantColor,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Términos y Condiciones",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (terminosAceptados.puedeRegistrarse) primaryColor else onSurfaceColor
+                                )
+                            )
+                            Text(
+                                text = if (terminosAceptados.puedeRegistrarse)
+                                    "Aceptados ✓"
+                                else
+                                    "Toca para leer y aceptar",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = if (terminosAceptados.puedeRegistrarse)
+                                        primaryColor
+                                    else
+                                        onSurfaceVariantColor
+                                )
+                            )
+                        }
+                        // Badges de estado
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            // Badge T&C
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (terminosAceptados.aceptaTerminos)
+                                    primaryColor.copy(alpha = 0.15f)
+                                else
+                                    surfaceContainerHighColor
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (terminosAceptados.aceptaTerminos)
+                                            Icons.Default.CheckCircle
+                                        else
+                                            Icons.Default.RadioButtonUnchecked,
+                                        contentDescription = null,
+                                        tint = if (terminosAceptados.aceptaTerminos)
+                                            primaryColor
+                                        else
+                                            onSurfaceVariantColor,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Text(
+                                        text = "T&C",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = if (terminosAceptados.aceptaTerminos)
+                                                primaryColor
+                                            else
+                                                onSurfaceVariantColor,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    )
+                                }
+                            }
+                            // Badge Datos
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (terminosAceptados.aceptaAlmacenamientoDatos)
+                                    primaryColor.copy(alpha = 0.15f)
+                                else
+                                    surfaceContainerHighColor
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (terminosAceptados.aceptaAlmacenamientoDatos)
+                                            Icons.Default.CheckCircle
+                                        else
+                                            Icons.Default.RadioButtonUnchecked,
+                                        contentDescription = null,
+                                        tint = if (terminosAceptados.aceptaAlmacenamientoDatos)
+                                            primaryColor
+                                        else
+                                            onSurfaceVariantColor,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Text(
+                                        text = "Datos",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = if (terminosAceptados.aceptaAlmacenamientoDatos)
+                                                primaryColor
+                                            else
+                                                onSurfaceVariantColor,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = onSurfaceVariantColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    // Aviso si no se han aceptado y se intenta registrar
+                    if (!terminosAceptados.puedeRegistrarse && errorMessage == "terminos") {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Debes leer y aceptar los Términos y Condiciones para continuar.",
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (errorMessage != null && errorMessage != "terminos") {
                         Spacer(modifier = Modifier.height(12.dp))
                         Card(
                             colors = CardDefaults.cardColors(
@@ -576,6 +745,8 @@ fun RegisterPage(
                                     "La contraseña debe tener mínimo 6 caracteres"
                                 contrasena != confirmarContrasena ->
                                     "Las contraseñas no coinciden"
+                                !terminosAceptados.puedeRegistrarse ->
+                                    "terminos"
                                 else -> null
                             }
                             if (errorMessage == null) {
@@ -682,6 +853,19 @@ fun RegisterPage(
                     }
                 }
             }
+        }
+
+        // ── Diálogo de Términos y Condiciones ────────────────────────────────
+        if (mostrarDialogoTerminos) {
+            TerminosCondicionesDialog(
+                onDismiss = { mostrarDialogoTerminos = false },
+                onAceptar = { aceptacion ->
+                    terminosAceptados = aceptacion
+                    mostrarDialogoTerminos = false
+                    // Limpiar el error de términos si ya fueron aceptados
+                    if (errorMessage == "terminos") errorMessage = null
+                }
+            )
         }
     }
 }

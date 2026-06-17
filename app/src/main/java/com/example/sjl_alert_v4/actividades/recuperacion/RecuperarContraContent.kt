@@ -1,4 +1,3 @@
-
 package com.example.sjl_alert_v4.actividades.recuperacion
 
 import androidx.compose.foundation.Image
@@ -17,24 +16,29 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sjl_alert_v4.R
+import com.example.sjl_alert_v4.red.RecuperarRequest
+import com.example.sjl_alert_v4.red.RetrofitClient
 import com.example.sjl_alert_v4.ui.theme.PrimaryBlue
 import com.example.sjl_alert_v4.ui.theme.SJL_Alert_v4Theme
+import kotlinx.coroutines.launch
 
 @Composable
 fun RecuperarContraContent(
-    onEnviarCodigo: () -> Unit,
+    onEnviarCodigo: (String) -> Unit,
     onLoginClick: () -> Unit
 ) {
     var correo by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
-    // Colores del tema para el logo
     val primaryColor = MaterialTheme.colorScheme.primary
 
     Column(
@@ -46,7 +50,6 @@ fun RecuperarContraContent(
     ) {
         Spacer(modifier = Modifier.height(20.dp))
 
-        // LOGO (Reemplazo solicitado)
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -57,16 +60,14 @@ fun RecuperarContraContent(
                 modifier = Modifier.size(120.dp),
                 contentScale = ContentScale.Fit
             )
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "SJL Alerta",
-                    style = MaterialTheme.typography.headlineLarge.copy(
-                        color = primaryColor,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = (-0.5).sp
-                    )
+            Text(
+                text = "SJL Alerta",
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    color = primaryColor,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = (-0.5).sp
                 )
-            }
+            )
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -74,8 +75,7 @@ fun RecuperarContraContent(
         Text(
             text = "Recuperar Contraseña",
             style = MaterialTheme.typography.headlineMedium.copy(
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
+                fontWeight = FontWeight.Bold, color = Color.Black
             )
         )
 
@@ -84,15 +84,18 @@ fun RecuperarContraContent(
         Text(
             text = "Ingresa tu correo electrónico registrado para enviarte un código de verificación.",
             style = MaterialTheme.typography.bodyLarge.copy(
-                color = Color.Gray,
-                textAlign = TextAlign.Center
+                color = Color.Gray, textAlign = TextAlign.Center
             ),
             modifier = Modifier.padding(horizontal = 8.dp)
         )
 
         Spacer(modifier = Modifier.height(40.dp))
 
-        // Tarjeta de entrada
+        errorMessage?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -103,14 +106,13 @@ fun RecuperarContraContent(
                 Text(
                     text = "Correo electrónico",
                     style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.DarkGray
+                        fontWeight = FontWeight.SemiBold, color = Color.DarkGray
                     )
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = correo,
-                    onValueChange = { correo = it },
+                    onValueChange = { correo = it; errorMessage = null },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("nombre@ejemplo.com") },
                     leadingIcon = {
@@ -128,26 +130,48 @@ fun RecuperarContraContent(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
-                    onClick = onEnviarCodigo,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
+                    onClick = {
+                        if (correo.isBlank() || !correo.contains("@")) {
+                            errorMessage = "Ingresa un correo válido"
+                            return@Button
+                        }
+                        isLoading = true
+                        scope.launch {
+                            try {
+                                val response = RetrofitClient.usuarioApi.recuperar(
+                                    RecuperarRequest(correo = correo.trim().lowercase())
+                                )
+                                isLoading = false
+                                if (response.isSuccessful) {
+                                    onEnviarCodigo(correo.trim().lowercase())
+                                } else {
+                                    errorMessage = response.body()?.error ?: "Correo no registrado"
+                                }
+                            } catch (e: Exception) {
+                                isLoading = false
+                                errorMessage = "Sin conexión. Intenta de nuevo."
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                    enabled = !isLoading
                 ) {
-                    Text("Enviar Código", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
+                    if (isLoading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
+                    } else {
+                        Text("Enviar Código", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
             Text("¿Recordaste tu contraseña? ", color = Color.Gray)
             Text(
                 text = "Inicia sesión",
@@ -159,33 +183,14 @@ fun RecuperarContraContent(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                Icons.Default.VerifiedUser,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = Color.Gray
-            )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+            Icon(Icons.Default.VerifiedUser, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Gray)
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "SISTEMA DE SEGURIDAD ENCRIPTADO",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    color = Color.Gray,
-                    letterSpacing = 1.sp
-                )
+                style = MaterialTheme.typography.labelSmall.copy(color = Color.Gray, letterSpacing = 1.sp)
             )
         }
         Spacer(modifier = Modifier.height(20.dp))
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun RecuperarContraContentPreview() {
-    SJL_Alert_v4Theme {
-        RecuperarContraContent(onEnviarCodigo = {}, onLoginClick = {})
     }
 }
