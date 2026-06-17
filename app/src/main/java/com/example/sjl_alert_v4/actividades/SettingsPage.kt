@@ -66,6 +66,7 @@ fun AjustesPrefs(
     var mostrarDialogoIdioma by remember { mutableStateOf(false) }
     var mostrarDialogoLogout by remember { mutableStateOf(false) }
     var mostrarDialogoTerminos by remember { mutableStateOf(false) }
+    var mostrarDialogoPrivacidad by remember { mutableStateOf(false) }
 
     // ── Datos cargados desde la DB ────────────────────────────────────────────
     // Inicializamos desde SharedPrefs (instantáneo) y luego Room los confirma/actualiza
@@ -240,7 +241,15 @@ fun AjustesPrefs(
     if (mostrarDialogoTerminos) {
         TerminosCondicionesDialog(
             soloLectura = true,
+            mostrarSoloTerminos = true,
             onDismiss = { mostrarDialogoTerminos = false }
+        )
+    }
+
+    // ── DIÁLOGO: Política de Privacidad (Solo Lectura) ─────────────────────────
+    if (mostrarDialogoPrivacidad) {
+        PoliticaPrivacidadDialog(
+            onDismiss = { mostrarDialogoPrivacidad = false }
         )
     }
 
@@ -277,7 +286,6 @@ fun AjustesPrefs(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .navigationBarsPadding()
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
@@ -526,7 +534,7 @@ fun AjustesPrefs(
                 SettingsItem(
                     icon = Icons.Default.PrivacyTip,
                     title = stringResource(R.string.privacidad),
-                    onClick = { mostrarDialogoTerminos = true }
+                    onClick = { mostrarDialogoPrivacidad = true }
                 )
             }
 

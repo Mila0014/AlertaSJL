@@ -28,9 +28,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
-// ─────────────────────────────────────────────────────────────────────────────
+
 // Data class que expone los estados de aceptación al padre
-// ─────────────────────────────────────────────────────────────────────────────
+
 data class TerminosAceptacion(
     val aceptaTerminos: Boolean = false,
     val aceptaAlmacenamientoDatos: Boolean = false
@@ -39,12 +39,13 @@ data class TerminosAceptacion(
     val puedeRegistrarse: Boolean get() = aceptaTerminos && aceptaAlmacenamientoDatos
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 // Diálogo principal de Términos y Condiciones
-// ─────────────────────────────────────────────────────────────────────────────
+//
 @Composable
 fun TerminosCondicionesDialog(
     soloLectura: Boolean = false,
+    mostrarSoloTerminos: Boolean = false,
     onDismiss: () -> Unit,
     onAceptar: (TerminosAceptacion) -> Unit = {}
 ) {
@@ -167,38 +168,40 @@ fun TerminosCondicionesDialog(
                         )
                     }
 
-                    // ── Sección 2: Datos Recopilados ──────────────────────
-                    TerminosSeccion(
-                        numero = "2",
-                        titulo = "Datos Recopilados",
-                        icono = Icons.Default.DataUsage,
-                        primaryColor = primaryColor,
-                        primaryContainer = primaryContainer,
-                        onSurfaceColor = onSurfaceColor
-                    ) {
-                        TerminosParrafo(
-                            text = "Únicamente recopilamos los datos estrictamente necesarios para el funcionamiento de la aplicación:",
-                            color = onSurfaceVariant
-                        )
-                        TerminosItemLista(
-                            items = listOf(
-                                "Datos de registro: nombre, apellido, DNI, fecha de nacimiento, correo electrónico, teléfono y dirección.",
-                                "Datos de ubicación: GPS para geolocalizar los incidentes reportados.",
-                                "Imágenes: fotos adjuntas como evidencia visual del incidente."
-                            ),
-                            color = onSurfaceVariant,
-                            primaryColor = primaryColor
-                        )
-                        TerminosParrafo(
-                            text = "Todos los datos se almacenan de forma segura en Microsoft Azure SQL Database, con cifrado " +
-                                    "en reposo y protección contra accesos no autorizados.",
-                            color = onSurfaceVariant
-                        )
+                    if (!mostrarSoloTerminos) {
+                        // ── Sección 2: Datos Recopilados ──────────────────────
+                        TerminosSeccion(
+                            numero = "2",
+                            titulo = "Datos Recopilados",
+                            icono = Icons.Default.DataUsage,
+                            primaryColor = primaryColor,
+                            primaryContainer = primaryContainer,
+                            onSurfaceColor = onSurfaceColor
+                        ) {
+                            TerminosParrafo(
+                                text = "Únicamente recopilamos los datos estrictamente necesarios para el funcionamiento de la aplicación:",
+                                color = onSurfaceVariant
+                            )
+                            TerminosItemLista(
+                                items = listOf(
+                                    "Datos de registro: nombre, apellido, DNI, fecha de nacimiento, correo electrónico, teléfono y dirección.",
+                                    "Datos de ubicación: GPS para geolocalizar los incidentes reportados.",
+                                    "Imágenes: fotos adjuntas como evidencia visual del incidente."
+                                ),
+                                color = onSurfaceVariant,
+                                primaryColor = primaryColor
+                            )
+                            TerminosParrafo(
+                                text = "Todos los datos se almacenan de forma segura en Microsoft Azure SQL Database, con cifrado " +
+                                        "en reposo y protección contra accesos no autorizados.",
+                                color = onSurfaceVariant
+                            )
+                        }
                     }
 
                     // ── Sección 3: Uso adecuado ───────────────────────────
                     TerminosSeccion(
-                        numero = "3",
+                        numero = if (mostrarSoloTerminos) "2" else "3",
                         titulo = "Uso Adecuado de la Aplicación",
                         icono = Icons.Default.Shield,
                         primaryColor = primaryColor,
@@ -228,7 +231,7 @@ fun TerminosCondicionesDialog(
 
                     // ── Sección 4: Responsabilidad del Usuario ────────────
                     TerminosSeccion(
-                        numero = "4",
+                        numero = if (mostrarSoloTerminos) "3" else "4",
                         titulo = "Responsabilidad del Usuario",
                         icono = Icons.Default.PersonOutline,
                         primaryColor = primaryColor,
@@ -251,64 +254,66 @@ fun TerminosCondicionesDialog(
                         )
                     }
 
-                    // ── Sección 5: Privacidad y Protección de Datos ───────
-                    TerminosSeccion(
-                        numero = "5",
-                        titulo = "Privacidad y Protección de Datos",
-                        icono = Icons.Default.Lock,
-                        primaryColor = primaryColor,
-                        primaryContainer = primaryContainer,
-                        onSurfaceColor = onSurfaceColor
-                    ) {
-                        TerminosParrafo(
-                            text = "Los datos personales recopilados serán utilizados exclusivamente para:",
-                            color = onSurfaceVariant
-                        )
-                        TerminosItemLista(
-                            items = listOf(
-                                "Identificar al vecino que realiza el reporte.",
-                                "Autenticar el inicio de sesión.",
-                                "Geolocalizar los incidentes.",
-                                "Contactar al usuario si es necesario."
-                            ),
-                            color = onSurfaceVariant,
-                            primaryColor = primaryColor
-                        )
-                        TerminosParrafo(
-                            text = "Los datos personales no serán compartidos con terceros sin el consentimiento del usuario, " +
-                                    "excepto por requerimiento legal de las autoridades competentes.",
-                            color = onSurfaceVariant
-                        )
-                    }
+                    if (!mostrarSoloTerminos) {
+                        // ── Sección 5: Privacidad y Protección de Datos ───────
+                        TerminosSeccion(
+                            numero = "5",
+                            titulo = "Privacidad y Protección de Datos",
+                            icono = Icons.Default.Lock,
+                            primaryColor = primaryColor,
+                            primaryContainer = primaryContainer,
+                            onSurfaceColor = onSurfaceColor
+                        ) {
+                            TerminosParrafo(
+                                text = "Los datos personales recopilados serán utilizados exclusivamente para:",
+                                color = onSurfaceVariant
+                            )
+                            TerminosItemLista(
+                                items = listOf(
+                                    "Identificar al vecino que realiza el reporte.",
+                                    "Autenticar el inicio de sesión.",
+                                    "Geolocalizar los incidentes.",
+                                    "Contactar al usuario si es necesario."
+                                ),
+                                color = onSurfaceVariant,
+                                primaryColor = primaryColor
+                            )
+                            TerminosParrafo(
+                                text = "Los datos personales no serán compartidos con terceros sin el consentimiento del usuario, " +
+                                        "excepto por requerimiento legal de las autoridades competentes.",
+                                color = onSurfaceVariant
+                            )
+                        }
 
-                    // ── Sección 6: Cancelación de la Cuenta ──────────────
-                    TerminosSeccion(
-                        numero = "6",
-                        titulo = "Cancelación de la Cuenta",
-                        icono = Icons.Default.PersonOff,
-                        primaryColor = primaryColor,
-                        primaryContainer = primaryContainer,
-                        onSurfaceColor = onSurfaceColor
-                    ) {
-                        TerminosParrafo(
-                            text = "El usuario puede solicitar la cancelación de su cuenta en cualquier momento escribiendo al " +
-                                    "correo de soporte. Una vez cancelada la cuenta:",
-                            color = onSurfaceVariant
-                        )
-                        TerminosItemLista(
-                            items = listOf(
-                                "Se eliminarán sus datos personales de la base de datos.",
-                                "Se eliminarán sus reportes asociados.",
-                                "El proceso de eliminación se completará dentro de los 30 días posteriores a la solicitud."
-                            ),
-                            color = onSurfaceVariant,
-                            primaryColor = primaryColor
-                        )
+                        // ── Sección 6: Cancelación de la Cuenta ──────────────
+                        TerminosSeccion(
+                            numero = "6",
+                            titulo = "Cancelación de la Cuenta",
+                            icono = Icons.Default.PersonOff,
+                            primaryColor = primaryColor,
+                            primaryContainer = primaryContainer,
+                            onSurfaceColor = onSurfaceColor
+                        ) {
+                            TerminosParrafo(
+                                text = "El usuario puede solicitar la cancelación de su cuenta en cualquier momento escribiendo al " +
+                                        "correo de soporte. Una vez cancelada la cuenta:",
+                                color = onSurfaceVariant
+                            )
+                            TerminosItemLista(
+                                items = listOf(
+                                    "Se eliminarán sus datos personales de la base de datos.",
+                                    "Se eliminarán sus reportes asociados.",
+                                    "El proceso de eliminación se completará dentro de los 30 días posteriores a la solicitud."
+                                ),
+                                color = onSurfaceVariant,
+                                primaryColor = primaryColor
+                            )
+                        }
                     }
 
                     // ── Sección 7: Modificaciones de los Términos ─────────
                     TerminosSeccion(
-                        numero = "7",
+                        numero = if (mostrarSoloTerminos) "4" else "7",
                         titulo = "Modificaciones de los Términos",
                         icono = Icons.Default.Edit,
                         primaryColor = primaryColor,
@@ -325,7 +330,7 @@ fun TerminosCondicionesDialog(
 
                     // ── Sección 8: Legislación Aplicable ──────────────────
                     TerminosSeccion(
-                        numero = "8",
+                        numero = if (mostrarSoloTerminos) "5" else "8",
                         titulo = "Legislación Aplicable",
                         icono = Icons.Default.AccountBalance,
                         primaryColor = primaryColor,
@@ -342,7 +347,7 @@ fun TerminosCondicionesDialog(
 
                     // ── Sección 9: Contacto ────────────────────────────────
                     TerminosSeccion(
-                        numero = "9",
+                        numero = if (mostrarSoloTerminos) "6" else "9",
                         titulo = "Contacto",
                         icono = Icons.Default.ContactMail,
                         primaryColor = primaryColor,
@@ -539,9 +544,277 @@ fun TerminosCondicionesDialog(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// 
+// Diálogo de Política de Privacidad (Solo Lectura)
+//
+@Composable
+fun PoliticaPrivacidadDialog(
+    onDismiss: () -> Unit
+) {
+    val primaryColor      = MaterialTheme.colorScheme.primary
+    val surfaceColor      = MaterialTheme.colorScheme.surface
+    val onSurfaceColor    = MaterialTheme.colorScheme.onSurface
+    val onSurfaceVariant  = MaterialTheme.colorScheme.onSurfaceVariant
+    val primaryContainer  = MaterialTheme.colorScheme.primaryContainer
+    val outlineColor      = MaterialTheme.colorScheme.outline
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .fillMaxHeight(0.90f)
+                .clip(RoundedCornerShape(20.dp))
+                .background(surfaceColor)
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+
+                // ── Cabecera con gradiente ────────────────────────────────
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    primaryColor,
+                                    primaryColor.copy(alpha = 0.8f)
+                                )
+                            )
+                        )
+                        .padding(horizontal = 20.dp, vertical = 16.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PrivacyTip,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(26.dp)
+                        )
+                        Column {
+                            Text(
+                                text = "Política de Privacidad",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                            Text(
+                                text = "SJL Alerta — Seguridad Ciudadana",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = Color.White.copy(alpha = 0.85f)
+                                )
+                            )
+                        }
+                    }
+
+                    // Botón de cerrar
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.align(Alignment.TopEnd)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Cerrar",
+                            tint = Color.White
+                        )
+                    }
+                }
+
+                // ── Cuerpo scrolleable ────────────────────────────────────
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+
+                    // Fecha de vigencia
+                    Text(
+                        text = "Última actualización: Junio 2026",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = onSurfaceVariant,
+                            fontWeight = FontWeight.Medium
+                        )
+                    )
+
+                    // ── Sección 1: Sobre la Aplicación ───────────────────
+                    TerminosSeccion(
+                        numero = "1",
+                        titulo = "Sobre la Aplicación",
+                        icono = Icons.Default.Info,
+                        primaryColor = primaryColor,
+                        primaryContainer = primaryContainer,
+                        onSurfaceColor = onSurfaceColor
+                    ) {
+                        TerminosParrafo(
+                            text = "SJL Alerta es una aplicación de seguridad ciudadana desarrollada para los vecinos del " +
+                                    "distrito de San Juan de Lurigancho. Su propósito es facilitar el reporte de incidencias " +
+                                    "(robos, incendios, personas en estado de ebriedad, entre otros), la comunicación con las " +
+                                    "autoridades locales y la mejora de la convivencia en el vecindario.",
+                            color = onSurfaceVariant
+                        )
+                    }
+
+                    // ── Sección 2: Datos Recopilados ──────────────────────
+                    TerminosSeccion(
+                        numero = "2",
+                        titulo = "Datos Recopilados",
+                        icono = Icons.Default.DataUsage,
+                        primaryColor = primaryColor,
+                        primaryContainer = primaryContainer,
+                        onSurfaceColor = onSurfaceColor
+                    ) {
+                        TerminosParrafo(
+                            text = "Únicamente recopilamos los datos estrictamente necesarios para el funcionamiento de la aplicación:",
+                            color = onSurfaceVariant
+                        )
+                        TerminosItemLista(
+                            items = listOf(
+                                "Datos de registro: nombre, apellido, DNI, fecha de nacimiento, correo electrónico, teléfono y dirección.",
+                                "Datos de ubicación: GPS para geolocalizar los incidentes reportados.",
+                                "Imágenes: fotos adjuntas como evidencia visual del incidente."
+                            ),
+                            color = onSurfaceVariant,
+                            primaryColor = primaryColor
+                        )
+                        TerminosParrafo(
+                            text = "Todos los datos se almacenan de forma segura en Microsoft Azure SQL Database, con cifrado " +
+                                    "en reposo y protección contra accesos no autorizados.",
+                            color = onSurfaceVariant
+                        )
+                    }
+
+                    // ── Sección 3: Uso y Tratamiento de los Datos ───────
+                    TerminosSeccion(
+                        numero = "3",
+                        titulo = "Uso y Tratamiento de los Datos",
+                        icono = Icons.Default.Lock,
+                        primaryColor = primaryColor,
+                        primaryContainer = primaryContainer,
+                        onSurfaceColor = onSurfaceColor
+                    ) {
+                        TerminosParrafo(
+                            text = "Los datos personales recopilados serán utilizados exclusivamente para:",
+                            color = onSurfaceVariant
+                        )
+                        TerminosItemLista(
+                            items = listOf(
+                                "Identificar al vecino que realiza el reporte.",
+                                "Autenticar el inicio de sesión.",
+                                "Geolocalizar los incidentes.",
+                                "Contactar al usuario si es necesario."
+                            ),
+                            color = onSurfaceVariant,
+                            primaryColor = primaryColor
+                        )
+                        TerminosParrafo(
+                            text = "Los datos personales no serán compartidos con terceros sin el consentimiento del usuario, " +
+                                    "excepto por requerimiento legal de las autoridades competentes.",
+                            color = onSurfaceVariant
+                        )
+                    }
+
+                    // ── Sección 4: Derechos del Usuario y Eliminación ──────
+                    TerminosSeccion(
+                        numero = "4",
+                        titulo = "Derechos del Usuario y Eliminación",
+                        icono = Icons.Default.PersonOff,
+                        primaryColor = primaryColor,
+                        primaryContainer = primaryContainer,
+                        onSurfaceColor = onSurfaceColor
+                    ) {
+                        TerminosParrafo(
+                            text = "El usuario puede solicitar la cancelación de su cuenta en cualquier momento escribiendo al " +
+                                    "correo de soporte. Una vez cancelada la cuenta:",
+                            color = onSurfaceVariant
+                        )
+                        TerminosItemLista(
+                            items = listOf(
+                                "Se eliminarán sus datos personales de la base de datos.",
+                                "Se eliminarán sus reportes asociados.",
+                                "El proceso de eliminación se completará dentro de los 30 días posteriores a la solicitud."
+                            ),
+                            color = onSurfaceVariant,
+                            primaryColor = primaryColor
+                        )
+                    }
+
+                    // ── Sección 5: Contacto ────────────────────────────────
+                    TerminosSeccion(
+                        numero = "5",
+                        titulo = "Contacto",
+                        icono = Icons.Default.ContactMail,
+                        primaryColor = primaryColor,
+                        primaryContainer = primaryContainer,
+                        onSurfaceColor = onSurfaceColor
+                    ) {
+                        TerminosParrafo(
+                            text = "Si el usuario tiene preguntas sobre esta política de privacidad, puede contactar a los " +
+                                    "administradores de SJL Alerta a través del correo electrónico:",
+                            color = onSurfaceVariant
+                        )
+                        Text(
+                            text = "📧 soporte@alertasjl.com",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = primaryColor,
+                                fontWeight = FontWeight.SemiBold,
+                                lineHeight = 20.sp
+                            ),
+                            modifier = Modifier.padding(start = 4.dp, top = 2.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+
+                // ── Botón de Entendido ─────────────────────────────────
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(surfaceColor)
+                        .padding(horizontal = 20.dp, vertical = 16.dp)
+                ) {
+                    HorizontalDivider(color = outlineColor.copy(alpha = 0.3f))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = primaryColor,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Entendido",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+//
 // Composable: fila de checkbox con contenido flexible
-// ─────────────────────────────────────────────────────────────────────────────
+//
 @Composable
 private fun TerminosCheckboxRow(
     checked: Boolean,
@@ -592,9 +865,9 @@ private fun TerminosCheckboxRow(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+//
 // Composable: sección con número, ícono y título
-// ─────────────────────────────────────────────────────────────────────────────
+//
 @Composable
 private fun TerminosSeccion(
     numero: String,
@@ -640,9 +913,9 @@ private fun TerminosSeccion(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+//
 // Composable: párrafo de texto normal
-// ─────────────────────────────────────────────────────────────────────────────
+//
 @Composable
 private fun TerminosParrafo(text: String, color: Color) {
     Text(
@@ -655,9 +928,9 @@ private fun TerminosParrafo(text: String, color: Color) {
     )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 // Composable: lista de ítems con viñeta circular
-// ─────────────────────────────────────────────────────────────────────────────
+//
 @Composable
 private fun TerminosItemLista(
     items: List<String>,
