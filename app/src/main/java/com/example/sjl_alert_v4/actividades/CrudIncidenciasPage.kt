@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.sp
 import com.example.sjl_alert_v4.modelos.*
 import com.example.sjl_alert_v4.sharedPrefs.PreferenceManager
 import com.example.sjl_alert_v4.ui.theme.*
+import com.example.sjl_alert_v4.utilidades.SuccessToast
+import com.example.sjl_alert_v4.utilidades.ToastData
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -36,22 +38,17 @@ fun CrudIncidenciasPage(onBack: () -> Unit) {
 
     val primaryColor = MaterialTheme.colorScheme.primary
 
-    // ── Estado ────────────────────────────────────────────────────────────
     val incidencias by db.incidenciaDao()
         .obtenerPorUsuario(usuarioId)
         .collectAsState(initial = emptyList())
 
-    var cargando         by remember { mutableStateOf(false) }
-    var mensajeSnackbar  by remember { mutableStateOf("") }
-    var mostrarSnackbar  by remember { mutableStateOf(false) }
-
-    // Diálogos
+    var cargando            by remember { mutableStateOf(false) }
+    var toastCrud           by remember { mutableStateOf<ToastData?>(null) }
     var incidenciaAEditar   by remember { mutableStateOf<IncidenciaEntity?>(null) }
     var incidenciaAEliminar by remember { mutableStateOf<IncidenciaEntity?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // ── Sincronizar con Supabase al abrir ────────────────────────────────────
     LaunchedEffect(Unit) {
         cargando = true
         val resultado = repo.sincronizarConAzure(usuarioId)
@@ -65,7 +62,6 @@ fun CrudIncidenciasPage(onBack: () -> Unit) {
         scope.launch { snackbarHostState.showSnackbar(msg) }
     }
 
-    // ── UI ─────────────────────────────────────────────────────────────────
     Scaffold(
         topBar = {
             TopAppBar(
@@ -74,15 +70,10 @@ fun CrudIncidenciasPage(onBack: () -> Unit) {
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = primaryColor,
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver", tint = primaryColor)
                     }
                 },
                 actions = {
-                    // Botón sincronizar manualmente
                     IconButton(onClick = {
                         scope.launch {
                             cargando = true
@@ -94,17 +85,15 @@ fun CrudIncidenciasPage(onBack: () -> Unit) {
                             )
                         }
                     }) {
-                        Icon(Icons.Default.Sync, contentDescription = "Sincronizar",
-                            tint = primaryColor)
+                        Icon(Icons.Default.Sync, "Sincronizar", tint = primaryColor)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                    containerColor = MaterialTheme.colorScheme.background)
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background
+        snackbarHost    = { SnackbarHost(snackbarHostState) },
+        containerColor  = MaterialTheme.colorScheme.background
     ) { padding ->
 
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -112,17 +101,13 @@ fun CrudIncidenciasPage(onBack: () -> Unit) {
             if (cargando) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (incidencias.isEmpty()) {
-                // Estado vacío
                 Column(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Assignment,
-                        contentDescription = null,
+                    Icon(Icons.AutoMirrored.Filled.Assignment, null,
                         modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(12.dp))
                     Text("No tienes incidencias aún", fontSize = 16.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -141,10 +126,18 @@ fun CrudIncidenciasPage(onBack: () -> Unit) {
                     }
                 }
             }
+
+            // Toast anclado arriba
+            Box(modifier = Modifier.align(Alignment.TopCenter)) {
+                SuccessToast(
+                    toastData = toastCrud,
+                    onDismiss = { toastCrud = null }
+                )
+            }
         }
     }
 
-    // ── Diálogo: Editar ───────────────────────────────────────────────────
+    // Diálogo: Editar
     incidenciaAEditar?.let { inc ->
         DialogoEditar(
             incidencia = inc,
@@ -155,15 +148,22 @@ fun CrudIncidenciasPage(onBack: () -> Unit) {
                 val r = repo.actualizar(incidenciaEditada)
                 cargando = false
                 incidenciaAEditar = null
-                mostrarMensaje(
-                    if (r is ResultadoApi.Exito) "✅ Actualizado correctamente"
-                    else (r as ResultadoApi.Error).mensaje
-                )
+                if (r is ResultadoApi.Exito) {
+                    toastCrud = ToastData(
+                        icon     = Icons.Default.EditNote,
+                        iconBg   = Color(0xFFE3F2FD),
+                        iconTint = Color(0xFF1565C0),
+                        title    = "Cambios guardados",
+                        message  = "La incidencia fue actualizada correctamente."
+                    )
+                } else {
+                    mostrarMensaje((r as ResultadoApi.Error).mensaje)
+                }
             }
         }
     }
 
-    // ── Diálogo: Confirmar eliminación ────────────────────────────────────
+    // Diálogo: Confirmar eliminación
     incidenciaAEliminar?.let { inc ->
         AlertDialog(
             onDismissRequest = { incidenciaAEliminar = null },
@@ -178,10 +178,17 @@ fun CrudIncidenciasPage(onBack: () -> Unit) {
                             val r = repo.eliminar(inc)
                             cargando = false
                             incidenciaAEliminar = null
-                            mostrarMensaje(
-                                if (r is ResultadoApi.Exito) "✅ Eliminado correctamente"
-                                else (r as ResultadoApi.Error).mensaje
-                            )
+                            if (r is ResultadoApi.Exito) {
+                                toastCrud = ToastData(
+                                    icon     = Icons.Default.CheckCircle,
+                                    iconBg   = Color(0xFFE8F5E9),
+                                    iconTint = Color(0xFF2E7D32),
+                                    title    = "Eliminado",
+                                    message  = "La incidencia fue borrada correctamente."
+                                )
+                            } else {
+                                mostrarMensaje((r as ResultadoApi.Error).mensaje)
+                            }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = DeepRed)
@@ -194,7 +201,6 @@ fun CrudIncidenciasPage(onBack: () -> Unit) {
     }
 }
 
-// ── Tarjeta individual de incidencia ──────────────────────────────────────────
 @Composable
 private fun TarjetaIncidenciaCrud(
     incidencia: IncidenciaEntity,
@@ -202,16 +208,14 @@ private fun TarjetaIncidenciaCrud(
     onEliminar: () -> Unit
 ) {
     val fechaFormateada = remember(incidencia.fecha) {
-        SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-            .format(Date(incidencia.fecha))
+        SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(incidencia.fecha))
     }
-
     val colorEstado = when (incidencia.estado) {
-        "PENDIENTE"   -> Color(0xFFFFA000)
-        "EN_PROCESO"  -> Color(0xFF1976D2)
-        "RESUELTO"    -> Color(0xFF2E7D32)
-        "RECHAZADO"   -> DeepRed
-        else          -> Color(0xFF757575)
+        "PENDIENTE"  -> Color(0xFFFFA000)
+        "EN_PROCESO" -> Color(0xFF1976D2)
+        "RESUELTO"   -> Color(0xFF2E7D32)
+        "RECHAZADO"  -> DeepRed
+        else         -> Color(0xFF757575)
     }
 
     Card(
@@ -221,8 +225,6 @@ private fun TarjetaIncidenciaCrud(
         colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-
-            // Fila superior: tipo + badge estado
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -230,72 +232,53 @@ private fun TarjetaIncidenciaCrud(
             ) {
                 Text(incidencia.tipo, fontWeight = FontWeight.Bold, fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = colorEstado.copy(alpha = 0.15f)
-                ) {
+                Surface(shape = RoundedCornerShape(20.dp), color = colorEstado.copy(alpha = 0.15f)) {
                     Text(incidencia.estado, fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                        color = colorEstado, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+                        color = colorEstado,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
                 }
             }
-
             Spacer(modifier = Modifier.height(6.dp))
-
-            // Ubicación
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.LocationOn, contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(Icons.Default.LocationOn, null,
+                    modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(incidencia.ubicacion.ifBlank { "Sin ubicación" },
-                    fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1)
+                    fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
-
-            // Descripción
             if (incidencia.descripcion.isNotBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(incidencia.descripcion, fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
             }
-
             Spacer(modifier = Modifier.height(8.dp))
-
-            // Fila inferior: fecha + botones
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(fechaFormateada, fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-
+                Text(fechaFormateada, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Botón Editar
                     OutlinedButton(
-                        onClick = onEditar,
-                        modifier = Modifier.height(34.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
+                        onClick          = onEditar,
+                        modifier         = Modifier.height(34.dp),
+                        shape            = RoundedCornerShape(8.dp),
+                        contentPadding   = PaddingValues(horizontal = 12.dp),
+                        colors           = ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.primary)
                     ) {
-                        Icon(Icons.Default.Edit, contentDescription = null,
-                            modifier = Modifier.size(14.dp))
+                        Icon(Icons.Default.Edit, null, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Editar", fontSize = 12.sp)
                     }
-
-                    // Botón Eliminar
                     Button(
-                        onClick = onEliminar,
-                        modifier = Modifier.height(34.dp),
-                        shape = RoundedCornerShape(8.dp),
+                        onClick        = onEliminar,
+                        modifier       = Modifier.height(34.dp),
+                        shape          = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = DeepRed)
+                        colors         = ButtonDefaults.buttonColors(containerColor = DeepRed)
                     ) {
-                        Icon(Icons.Default.Delete, contentDescription = null,
-                            modifier = Modifier.size(14.dp))
+                        Icon(Icons.Default.Delete, null, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Eliminar", fontSize = 12.sp)
                     }
@@ -305,7 +288,6 @@ private fun TarjetaIncidenciaCrud(
     }
 }
 
-// ── Diálogo de edición ────────────────────────────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DialogoEditar(
@@ -318,18 +300,15 @@ private fun DialogoEditar(
     var ubicacion   by remember { mutableStateOf(incidencia.ubicacion) }
     var estado      by remember { mutableStateOf(incidencia.estado) }
 
-    val estados = listOf("PENDIENTE", "EN_PROCESO", "RESUELTO", "RECHAZADO")
-    var expandidoEstado by remember { mutableStateOf(false) }
-
-    val primaryColor = MaterialTheme.colorScheme.primary
+    val estados          = listOf("PENDIENTE", "EN_PROCESO", "RESUELTO", "RECHAZADO")
+    var expandidoEstado  by remember { mutableStateOf(false) }
+    val primaryColor     = MaterialTheme.colorScheme.primary
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Editar Incidencia", fontWeight = FontWeight.Bold) },
         text  = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-
-                // Tipo
                 OutlinedTextField(
                     value         = tipo,
                     onValueChange = { tipo = it },
@@ -338,8 +317,6 @@ private fun DialogoEditar(
                     shape         = RoundedCornerShape(10.dp),
                     singleLine    = true
                 )
-
-                // Descripción
                 OutlinedTextField(
                     value         = descripcion,
                     onValueChange = { descripcion = it },
@@ -348,8 +325,6 @@ private fun DialogoEditar(
                     shape         = RoundedCornerShape(10.dp),
                     maxLines      = 3
                 )
-
-                // Ubicación
                 OutlinedTextField(
                     value         = ubicacion,
                     onValueChange = { ubicacion = it },
@@ -358,15 +333,12 @@ private fun DialogoEditar(
                     shape         = RoundedCornerShape(10.dp),
                     singleLine    = true,
                     leadingIcon   = {
-                        Icon(Icons.Default.LocationOn, contentDescription = null,
-                            tint = primaryColor)
+                        Icon(Icons.Default.LocationOn, null, tint = primaryColor)
                     }
                 )
-
-                // Estado (dropdown)
                 ExposedDropdownMenuBox(
-                    expanded = expandidoEstado,
-                    onExpandedChange = { expandidoEstado = it }
+                    expanded          = expandidoEstado,
+                    onExpandedChange  = { expandidoEstado = it }
                 ) {
                     OutlinedTextField(
                         value         = estado,
@@ -380,8 +352,8 @@ private fun DialogoEditar(
                         }
                     )
                     ExposedDropdownMenu(
-                        expanded = expandidoEstado,
-                        onDismissRequest = { expandidoEstado = false }
+                        expanded          = expandidoEstado,
+                        onDismissRequest  = { expandidoEstado = false }
                     ) {
                         estados.forEach { opcion ->
                             DropdownMenuItem(
@@ -395,7 +367,7 @@ private fun DialogoEditar(
         },
         confirmButton = {
             Button(
-                onClick = {
+                onClick  = {
                     onGuardar(incidencia.copy(
                         tipo        = tipo.trim(),
                         descripcion = descripcion.trim(),

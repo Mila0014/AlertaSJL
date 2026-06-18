@@ -22,16 +22,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TransformedText
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,32 +36,30 @@ import com.example.sjl_alert_v4.R
 import com.example.sjl_alert_v4.red.RegistroRequest
 import com.example.sjl_alert_v4.red.RetrofitClient
 import com.example.sjl_alert_v4.ui.theme.*
+import com.example.sjl_alert_v4.utilidades.SuccessToast
+import com.example.sjl_alert_v4.utilidades.ToastData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.security.MessageDigest
 
-// ----- Función utilitaria: hashea la contraseña con SHA-256 -----
 fun hashSHA256(input: String): String {
     val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
     return bytes.joinToString("") { "%02x".format(it) }
 }
 
-// ----- Función utilitaria: calcula la edad a partir de DD/MM/AAAA -----
 fun calcularEdad(fechaTexto: String): Int? {
     if (fechaTexto.length < 10) return null
     return try {
         val partes = fechaTexto.split("/")
         if (partes.size != 3) return null
-        val dia = partes[0].toInt()
-        val mes = partes[1].toInt()
+        val dia  = partes[0].toInt()
+        val mes  = partes[1].toInt()
         val anio = partes[2].toInt()
         if (mes < 1 || mes > 12) return null
         if (dia < 1 || dia > 31) return null
         if (anio < 1900) return null
-        val nacimiento = java.util.Calendar.getInstance().apply {
-            set(anio, mes - 1, dia)
-        }
+        val nacimiento = java.util.Calendar.getInstance().apply { set(anio, mes - 1, dia) }
         val hoy = java.util.Calendar.getInstance()
         if (nacimiento.after(hoy)) return null
         var edad = hoy.get(java.util.Calendar.YEAR) - nacimiento.get(java.util.Calendar.YEAR)
@@ -74,9 +69,7 @@ fun calcularEdad(fechaTexto: String): Int? {
                     hoy.get(java.util.Calendar.DAY_OF_MONTH) < nacimiento.get(java.util.Calendar.DAY_OF_MONTH))
         ) edad--
         if (edad < 0) null else edad
-    } catch (e: Exception) {
-        null
-    }
+    } catch (e: Exception) { null }
 }
 
 class DateVisualTransformation : VisualTransformation {
@@ -87,7 +80,6 @@ class DateVisualTransformation : VisualTransformation {
             out += trimmed[i]
             if (i == 1 || i == 3) out += "/"
         }
-        
         val offsetTranslator = object : OffsetMapping {
             override fun originalToTransformed(offset: Int): Int {
                 if (offset <= 1) return offset
@@ -95,7 +87,6 @@ class DateVisualTransformation : VisualTransformation {
                 if (offset <= 8) return offset + 2
                 return 10
             }
-
             override fun transformedToOriginal(offset: Int): Int {
                 if (offset <= 2) return offset
                 if (offset <= 5) return offset - 1
@@ -110,9 +101,7 @@ class DateVisualTransformation : VisualTransformation {
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun RegisterPreview() {
-    SJL_Alert_v4Theme {
-        RegisterPage()
-    }
+    SJL_Alert_v4Theme { RegisterPage() }
 }
 
 @Composable
@@ -121,18 +110,18 @@ fun RegisterPage(
     onBackToLogin: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val scope   = rememberCoroutineScope()
 
-    var nombre by remember { mutableStateOf("") }
-    var apellido by remember { mutableStateOf("") }
-    var dni by remember { mutableStateOf("") }
-    var fechaNacimiento by remember { mutableStateOf("") }
-    var correo by remember { mutableStateOf("") }
-    var telefono by remember { mutableStateOf("") }
-    var direccion by remember { mutableStateOf("") }
-    var contrasena by remember { mutableStateOf("") }
+    var nombre              by remember { mutableStateOf("") }
+    var apellido            by remember { mutableStateOf("") }
+    var dni                 by remember { mutableStateOf("") }
+    var fechaNacimiento     by remember { mutableStateOf("") }
+    var correo              by remember { mutableStateOf("") }
+    var telefono            by remember { mutableStateOf("") }
+    var direccion           by remember { mutableStateOf("") }
+    var contrasena          by remember { mutableStateOf("") }
     var confirmarContrasena by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
+    var passwordVisible        by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
 
     val fechaNacimientoFormateada = when {
@@ -142,25 +131,24 @@ fun RegisterPage(
     }
     val edad = calcularEdad(fechaNacimientoFormateada)
 
-    var isLoading by remember { mutableStateOf(false) }
+    var isLoading    by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var toastRegistro by remember { mutableStateOf<ToastData?>(null) }
 
-    // ── Estados para Términos y Condiciones ───────────────────────────────────
     var mostrarDialogoTerminos by remember { mutableStateOf(false) }
-    var terminosAceptados by remember { mutableStateOf(TerminosAceptacion()) }
+    var terminosAceptados      by remember { mutableStateOf(TerminosAceptacion()) }
 
-    // ── Colores dinámicos del tema activo ──────────────────────────────────────
-    val backgroundColor = MaterialTheme.colorScheme.background
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
-    val surfaceColor = MaterialTheme.colorScheme.surface
-    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
-    val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val surfaceContainerLowColor = MaterialTheme.colorScheme.surfaceContainer
-    val surfaceContainerHighColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val backgroundColor              = MaterialTheme.colorScheme.background
+    val primaryColor                 = MaterialTheme.colorScheme.primary
+    val onPrimaryColor               = MaterialTheme.colorScheme.onPrimary
+    val surfaceColor                 = MaterialTheme.colorScheme.surface
+    val onSurfaceColor               = MaterialTheme.colorScheme.onSurface
+    val onSurfaceVariantColor        = MaterialTheme.colorScheme.onSurfaceVariant
+    val surfaceContainerLowColor     = MaterialTheme.colorScheme.surfaceContainer
+    val surfaceContainerHighColor    = MaterialTheme.colorScheme.surfaceContainerHigh
     val surfaceContainerHighestColor = MaterialTheme.colorScheme.surfaceContainerHighest
-    val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
-    val outlineColor = MaterialTheme.colorScheme.outline
+    val primaryContainerColor        = MaterialTheme.colorScheme.primaryContainer
+    val outlineColor                 = MaterialTheme.colorScheme.outline
 
     Box(
         modifier = Modifier
@@ -198,24 +186,24 @@ fun RegisterPage(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.logo_sjl),
+                    painter           = painterResource(id = R.drawable.logo_sjl),
                     contentDescription = "Logo SJL Alerta",
-                    modifier = Modifier.size(100.dp),
-                    contentScale = ContentScale.Fit
+                    modifier          = Modifier.size(100.dp),
+                    contentScale      = ContentScale.Fit
                 )
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "SJL Alerta",
+                        text  = "SJL Alerta",
                         style = MaterialTheme.typography.headlineLarge.copy(
-                            color = primaryColor,
-                            fontWeight = FontWeight.ExtraBold,
+                            color         = primaryColor,
+                            fontWeight    = FontWeight.ExtraBold,
                             letterSpacing = (-0.5).sp
                         )
                     )
                     Text(
-                        text = "Crear cuenta de vecino",
+                        text  = "Crear cuenta de vecino",
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            color = onSurfaceVariantColor,
+                            color      = onSurfaceVariantColor,
                             fontWeight = FontWeight.Medium
                         )
                     )
@@ -226,29 +214,29 @@ fun RegisterPage(
 
             // CARD DEL FORMULARIO
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = surfaceColor),
+                modifier  = Modifier.fillMaxWidth(),
+                shape     = RoundedCornerShape(16.dp),
+                colors    = CardDefaults.cardColors(containerColor = surfaceColor),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
 
                     Text(
-                        text = "Registro",
+                        text  = "Registro",
                         style = MaterialTheme.typography.headlineMedium.copy(
-                            color = primaryColor,
+                            color      = primaryColor,
                             fontWeight = FontWeight.Bold
                         )
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Completa tus datos personales",
+                        text  = "Completa tus datos personales",
                         style = MaterialTheme.typography.bodyMedium.copy(color = onSurfaceVariantColor)
                     )
 
                     Spacer(modifier = Modifier.height(28.dp))
 
-                    // ── Nombre y Apellido en fila ──────────────────────────
+                    // Nombre y Apellido
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -257,18 +245,18 @@ fun RegisterPage(
                             RegisterFieldLabel("Nombre", onSurfaceVariantColor)
                             Spacer(modifier = Modifier.height(8.dp))
                             RegisterTextField(
-                                value = nombre,
-                                onValueChange = { nombre = it },
-                                placeholder = "Juan",
-                                primaryColor = primaryColor,
-                                onSurfaceColor = onSurfaceColor,
-                                onSurfaceVariantColor = onSurfaceVariantColor,
-                                surfaceContainerLowColor = surfaceContainerLowColor,
-                                surfaceContainerHighColor = surfaceContainerHighColor,
+                                value                        = nombre,
+                                onValueChange                = { nombre = it },
+                                placeholder                  = "Juan",
+                                primaryColor                 = primaryColor,
+                                onSurfaceColor               = onSurfaceColor,
+                                onSurfaceVariantColor        = onSurfaceVariantColor,
+                                surfaceContainerLowColor     = surfaceContainerLowColor,
+                                surfaceContainerHighColor    = surfaceContainerHighColor,
                                 surfaceContainerHighestColor = surfaceContainerHighestColor,
-                                outlineColor = outlineColor,
+                                outlineColor                 = outlineColor,
                                 leadingIcon = {
-                                    Icon(Icons.Default.Person, contentDescription = null, tint = onSurfaceVariantColor)
+                                    Icon(Icons.Default.Person, null, tint = onSurfaceVariantColor)
                                 }
                             )
                         }
@@ -276,45 +264,45 @@ fun RegisterPage(
                             RegisterFieldLabel("Apellido", onSurfaceVariantColor)
                             Spacer(modifier = Modifier.height(8.dp))
                             RegisterTextField(
-                                value = apellido,
-                                onValueChange = { apellido = it },
-                                placeholder = "Pérez",
-                                primaryColor = primaryColor,
-                                onSurfaceColor = onSurfaceColor,
-                                onSurfaceVariantColor = onSurfaceVariantColor,
-                                surfaceContainerLowColor = surfaceContainerLowColor,
-                                surfaceContainerHighColor = surfaceContainerHighColor,
+                                value                        = apellido,
+                                onValueChange                = { apellido = it },
+                                placeholder                  = "Pérez",
+                                primaryColor                 = primaryColor,
+                                onSurfaceColor               = onSurfaceColor,
+                                onSurfaceVariantColor        = onSurfaceVariantColor,
+                                surfaceContainerLowColor     = surfaceContainerLowColor,
+                                surfaceContainerHighColor    = surfaceContainerHighColor,
                                 surfaceContainerHighestColor = surfaceContainerHighestColor,
-                                outlineColor = outlineColor
+                                outlineColor                 = outlineColor
                             )
                         }
                     }
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // ── DNI ────────────────────────────────────────────────
+                    // DNI
                     RegisterFieldLabel("DNI", onSurfaceVariantColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     RegisterTextField(
-                        value = dni,
-                        onValueChange = { if (it.length <= 8 && it.all { c -> c.isDigit() }) dni = it },
-                        placeholder = "Ej: 70654321",
-                        keyboardType = KeyboardType.Number,
-                        primaryColor = primaryColor,
-                        onSurfaceColor = onSurfaceColor,
-                        onSurfaceVariantColor = onSurfaceVariantColor,
-                        surfaceContainerLowColor = surfaceContainerLowColor,
-                        surfaceContainerHighColor = surfaceContainerHighColor,
+                        value                        = dni,
+                        onValueChange                = { if (it.length <= 8 && it.all { c -> c.isDigit() }) dni = it },
+                        placeholder                  = "Ej: 70654321",
+                        keyboardType                 = KeyboardType.Number,
+                        primaryColor                 = primaryColor,
+                        onSurfaceColor               = onSurfaceColor,
+                        onSurfaceVariantColor        = onSurfaceVariantColor,
+                        surfaceContainerLowColor     = surfaceContainerLowColor,
+                        surfaceContainerHighColor    = surfaceContainerHighColor,
                         surfaceContainerHighestColor = surfaceContainerHighestColor,
-                        outlineColor = outlineColor,
+                        outlineColor                 = outlineColor,
                         leadingIcon = {
-                            Icon(Icons.Default.Badge, contentDescription = null, tint = onSurfaceVariantColor)
+                            Icon(Icons.Default.Badge, null, tint = onSurfaceVariantColor)
                         }
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // ── FECHA DE NACIMIENTO ────────────────────────────────
+                    // Fecha de nacimiento
                     RegisterFieldLabel("Fecha de nacimiento", onSurfaceVariantColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
@@ -323,58 +311,51 @@ fun RegisterPage(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedTextField(
-                            value = fechaNacimiento,
+                            value         = fechaNacimiento,
                             onValueChange = { input ->
                                 val soloDigitos = input.filter { it.isDigit() }.take(8)
                                 fechaNacimiento = soloDigitos
                             },
                             visualTransformation = DateVisualTransformation(),
-                            modifier = Modifier.weight(1f),
-                            placeholder = { Text("DD/MM/AAAA", color = outlineColor) },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.CalendarToday,
-                                    contentDescription = null,
-                                    tint = onSurfaceVariantColor
-                                )
+                            modifier      = Modifier.weight(1f),
+                            placeholder   = { Text("DD/MM/AAAA", color = outlineColor) },
+                            leadingIcon   = {
+                                Icon(Icons.Default.CalendarToday, null, tint = onSurfaceVariantColor)
                             },
-                            singleLine = true,
+                            singleLine      = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = primaryColor,
-                                unfocusedBorderColor = surfaceContainerHighColor,
-                                focusedContainerColor = surfaceContainerHighestColor,
+                            shape           = RoundedCornerShape(12.dp),
+                            colors          = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor      = primaryColor,
+                                unfocusedBorderColor    = surfaceContainerHighColor,
+                                focusedContainerColor   = surfaceContainerHighestColor,
                                 unfocusedContainerColor = surfaceContainerLowColor,
-                                focusedTextColor = onSurfaceColor,
-                                unfocusedTextColor = onSurfaceColor,
+                                focusedTextColor        = onSurfaceColor,
+                                unfocusedTextColor      = onSurfaceColor,
                             ),
                             isError = fechaNacimiento.length == 8 && (edad == null || edad < 18)
                         )
-
                         if (edad != null) {
                             Surface(
                                 shape = RoundedCornerShape(20.dp),
-                                color = if (edad >= 18)
-                                    primaryColor.copy(alpha = 0.15f)
-                                else
-                                    MaterialTheme.colorScheme.errorContainer
+                                color = if (edad >= 18) primaryColor.copy(alpha = 0.15f)
+                                else MaterialTheme.colorScheme.errorContainer
                             ) {
                                 Text(
-                                    text = "$edad años",
+                                    text     = "$edad años",
                                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                    color = if (edad >= 18) primaryColor else MaterialTheme.colorScheme.error,
+                                    color    = if (edad >= 18) primaryColor
+                                    else MaterialTheme.colorScheme.error,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp
+                                    fontSize   = 14.sp
                                 )
                             }
                         }
                     }
-
                     if (fechaNacimiento.length == 8 && edad != null && edad < 18) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Debes ser mayor de 18 años para registrarte",
+                            text  = "Debes ser mayor de 18 años para registrarte",
                             color = MaterialTheme.colorScheme.error,
                             fontSize = 12.sp
                         )
@@ -382,7 +363,7 @@ fun RegisterPage(
                     if (fechaNacimiento.length == 8 && edad == null) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Ingresa una fecha válida",
+                            text  = "Ingresa una fecha válida",
                             color = MaterialTheme.colorScheme.error,
                             fontSize = 12.sp
                         )
@@ -390,159 +371,157 @@ fun RegisterPage(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // ── Correo ─────────────────────────────────────────────
+                    // Correo
                     RegisterFieldLabel("Correo electrónico", onSurfaceVariantColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     RegisterTextField(
-                        value = correo,
-                        onValueChange = { correo = it },
-                        placeholder = "correo@ejemplo.com",
-                        keyboardType = KeyboardType.Email,
-                        primaryColor = primaryColor,
-                        onSurfaceColor = onSurfaceColor,
-                        onSurfaceVariantColor = onSurfaceVariantColor,
-                        surfaceContainerLowColor = surfaceContainerLowColor,
-                        surfaceContainerHighColor = surfaceContainerHighColor,
+                        value                        = correo,
+                        onValueChange                = { correo = it },
+                        placeholder                  = "correo@ejemplo.com",
+                        keyboardType                 = KeyboardType.Email,
+                        primaryColor                 = primaryColor,
+                        onSurfaceColor               = onSurfaceColor,
+                        onSurfaceVariantColor        = onSurfaceVariantColor,
+                        surfaceContainerLowColor     = surfaceContainerLowColor,
+                        surfaceContainerHighColor    = surfaceContainerHighColor,
                         surfaceContainerHighestColor = surfaceContainerHighestColor,
-                        outlineColor = outlineColor,
+                        outlineColor                 = outlineColor,
                         leadingIcon = {
-                            Icon(Icons.Default.Email, contentDescription = null, tint = onSurfaceVariantColor)
+                            Icon(Icons.Default.Email, null, tint = onSurfaceVariantColor)
                         }
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // ── Teléfono ───────────────────────────────────────────
+                    // Teléfono
                     RegisterFieldLabel("Teléfono", onSurfaceVariantColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     RegisterTextField(
-                        value = telefono,
-                        onValueChange = { if (it.length <= 9 && it.all { c -> c.isDigit() }) telefono = it },
-                        placeholder = "Ej: 987654321",
-                        keyboardType = KeyboardType.Phone,
-                        primaryColor = primaryColor,
-                        onSurfaceColor = onSurfaceColor,
-                        onSurfaceVariantColor = onSurfaceVariantColor,
-                        surfaceContainerLowColor = surfaceContainerLowColor,
-                        surfaceContainerHighColor = surfaceContainerHighColor,
+                        value                        = telefono,
+                        onValueChange                = { if (it.length <= 9 && it.all { c -> c.isDigit() }) telefono = it },
+                        placeholder                  = "Ej: 987654321",
+                        keyboardType                 = KeyboardType.Phone,
+                        primaryColor                 = primaryColor,
+                        onSurfaceColor               = onSurfaceColor,
+                        onSurfaceVariantColor        = onSurfaceVariantColor,
+                        surfaceContainerLowColor     = surfaceContainerLowColor,
+                        surfaceContainerHighColor    = surfaceContainerHighColor,
                         surfaceContainerHighestColor = surfaceContainerHighestColor,
-                        outlineColor = outlineColor,
+                        outlineColor                 = outlineColor,
                         leadingIcon = {
-                            Icon(Icons.Default.Phone, contentDescription = null, tint = onSurfaceVariantColor)
+                            Icon(Icons.Default.Phone, null, tint = onSurfaceVariantColor)
                         }
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // ── Dirección ──────────────────────────────────────────
+                    // Dirección
                     RegisterFieldLabel("Dirección (opcional)", onSurfaceVariantColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     RegisterTextField(
-                        value = direccion,
-                        onValueChange = { direccion = it },
-                        placeholder = "Av. Los Próceres 123",
-                        primaryColor = primaryColor,
-                        onSurfaceColor = onSurfaceColor,
-                        onSurfaceVariantColor = onSurfaceVariantColor,
-                        surfaceContainerLowColor = surfaceContainerLowColor,
-                        surfaceContainerHighColor = surfaceContainerHighColor,
+                        value                        = direccion,
+                        onValueChange                = { direccion = it },
+                        placeholder                  = "Av. Los Próceres 123",
+                        primaryColor                 = primaryColor,
+                        onSurfaceColor               = onSurfaceColor,
+                        onSurfaceVariantColor        = onSurfaceVariantColor,
+                        surfaceContainerLowColor     = surfaceContainerLowColor,
+                        surfaceContainerHighColor    = surfaceContainerHighColor,
                         surfaceContainerHighestColor = surfaceContainerHighestColor,
-                        outlineColor = outlineColor,
+                        outlineColor                 = outlineColor,
                         leadingIcon = {
-                            Icon(Icons.Default.Home, contentDescription = null, tint = onSurfaceVariantColor)
+                            Icon(Icons.Default.Home, null, tint = onSurfaceVariantColor)
                         }
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // ── Contraseña ─────────────────────────────────────────
+                    // Contraseña
                     RegisterFieldLabel("Contraseña", onSurfaceVariantColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
-                        value = contrasena,
+                        value         = contrasena,
                         onValueChange = { contrasena = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Mínimo 6 caracteres", color = outlineColor) },
-                        leadingIcon = {
-                            Icon(Icons.Default.Lock, contentDescription = null, tint = onSurfaceVariantColor)
+                        modifier      = Modifier.fillMaxWidth(),
+                        placeholder   = { Text("Mínimo 6 caracteres", color = outlineColor) },
+                        leadingIcon   = {
+                            Icon(Icons.Default.Lock, null, tint = onSurfaceVariantColor)
                         },
-                        trailingIcon = {
+                        trailingIcon  = {
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
-                                    imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = null,
-                                    tint = outlineColor
+                                    if (passwordVisible) Icons.Default.VisibilityOff
+                                    else Icons.Default.Visibility,
+                                    null, tint = outlineColor
                                 )
                             }
                         },
-                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        singleLine = true,
+                        visualTransformation = if (passwordVisible) VisualTransformation.None
+                        else PasswordVisualTransformation(),
+                        singleLine      = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = primaryColor,
-                            unfocusedBorderColor = surfaceContainerHighColor,
-                            focusedContainerColor = surfaceContainerHighestColor,
+                        shape           = RoundedCornerShape(12.dp),
+                        colors          = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor      = primaryColor,
+                            unfocusedBorderColor    = surfaceContainerHighColor,
+                            focusedContainerColor   = surfaceContainerHighestColor,
                             unfocusedContainerColor = surfaceContainerLowColor,
-                            focusedTextColor = onSurfaceColor,
-                            unfocusedTextColor = onSurfaceColor,
+                            focusedTextColor        = onSurfaceColor,
+                            unfocusedTextColor      = onSurfaceColor,
                         )
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // ── Confirmar Contraseña ───────────────────────────────
+                    // Confirmar Contraseña
                     RegisterFieldLabel("Confirmar contraseña", onSurfaceVariantColor)
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
-                        value = confirmarContrasena,
+                        value         = confirmarContrasena,
                         onValueChange = { confirmarContrasena = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Repite tu contraseña", color = outlineColor) },
-                        leadingIcon = {
-                            Icon(Icons.Default.LockOpen, contentDescription = null, tint = onSurfaceVariantColor)
+                        modifier      = Modifier.fillMaxWidth(),
+                        placeholder   = { Text("Repite tu contraseña", color = outlineColor) },
+                        leadingIcon   = {
+                            Icon(Icons.Default.LockOpen, null, tint = onSurfaceVariantColor)
                         },
-                        trailingIcon = {
+                        trailingIcon  = {
                             IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
                                 Icon(
-                                    imageVector = if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = null,
-                                    tint = outlineColor
+                                    if (confirmPasswordVisible) Icons.Default.VisibilityOff
+                                    else Icons.Default.Visibility,
+                                    null, tint = outlineColor
                                 )
                             }
                         },
-                        visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        singleLine = true,
+                        visualTransformation = if (confirmPasswordVisible) VisualTransformation.None
+                        else PasswordVisualTransformation(),
+                        singleLine      = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = primaryColor,
-                            unfocusedBorderColor = surfaceContainerHighColor,
-                            focusedContainerColor = surfaceContainerHighestColor,
+                        shape           = RoundedCornerShape(12.dp),
+                        colors          = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor      = primaryColor,
+                            unfocusedBorderColor    = surfaceContainerHighColor,
+                            focusedContainerColor   = surfaceContainerHighestColor,
                             unfocusedContainerColor = surfaceContainerLowColor,
-                            focusedTextColor = onSurfaceColor,
-                            unfocusedTextColor = onSurfaceColor,
+                            focusedTextColor        = onSurfaceColor,
+                            unfocusedTextColor      = onSurfaceColor,
                         ),
                         isError = confirmarContrasena.isNotEmpty() && contrasena != confirmarContrasena
                     )
-
                     if (confirmarContrasena.isNotEmpty() && contrasena != confirmarContrasena) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Las contraseñas no coinciden",
+                            text  = "Las contraseñas no coinciden",
                             color = MaterialTheme.colorScheme.error,
                             fontSize = 12.sp
                         )
                     }
 
-                    // ── Sección de Términos y Condiciones ──────────────────
+                    // Términos y Condiciones
                     Spacer(modifier = Modifier.height(20.dp))
-
                     HorizontalDivider(color = surfaceContainerHighColor)
-
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Botón para abrir el diálogo
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -551,15 +530,13 @@ fun RegisterPage(
                                 width = 1.dp,
                                 color = if (terminosAceptados.puedeRegistrarse)
                                     primaryColor.copy(alpha = 0.5f)
-                                else
-                                    surfaceContainerHighColor,
+                                else surfaceContainerHighColor,
                                 shape = RoundedCornerShape(12.dp)
                             )
                             .background(
                                 if (terminosAceptados.puedeRegistrarse)
                                     primaryColor.copy(alpha = 0.07f)
-                                else
-                                    surfaceContainerLowColor
+                                else surfaceContainerLowColor
                             )
                             .clickable { mostrarDialogoTerminos = true }
                             .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -569,42 +546,33 @@ fun RegisterPage(
                         Icon(
                             imageVector = Icons.Default.Gavel,
                             contentDescription = null,
-                            tint = if (terminosAceptados.puedeRegistrarse) primaryColor else onSurfaceVariantColor,
+                            tint     = if (terminosAceptados.puedeRegistrarse) primaryColor else onSurfaceVariantColor,
                             modifier = Modifier.size(22.dp)
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Términos y Condiciones",
+                                text  = "Términos y Condiciones",
                                 style = MaterialTheme.typography.bodyMedium.copy(
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if (terminosAceptados.puedeRegistrarse) primaryColor else onSurfaceColor
+                                    color      = if (terminosAceptados.puedeRegistrarse) primaryColor else onSurfaceColor
                                 )
                             )
                             Text(
-                                text = if (terminosAceptados.puedeRegistrarse)
-                                    "Aceptados ✓"
-                                else
-                                    "Toca para leer y aceptar",
+                                text  = if (terminosAceptados.puedeRegistrarse) "Aceptados ✓" else "Toca para leer y aceptar",
                                 style = MaterialTheme.typography.bodySmall.copy(
-                                    color = if (terminosAceptados.puedeRegistrarse)
-                                        primaryColor
-                                    else
-                                        onSurfaceVariantColor
+                                    color = if (terminosAceptados.puedeRegistrarse) primaryColor else onSurfaceVariantColor
                                 )
                             )
                         }
-                        // Badges de estado
                         Column(
                             horizontalAlignment = Alignment.End,
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            // Badge T&C
                             Surface(
                                 shape = RoundedCornerShape(20.dp),
                                 color = if (terminosAceptados.aceptaTerminos)
                                     primaryColor.copy(alpha = 0.15f)
-                                else
-                                    surfaceContainerHighColor
+                                else surfaceContainerHighColor
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -614,34 +582,25 @@ fun RegisterPage(
                                     Icon(
                                         imageVector = if (terminosAceptados.aceptaTerminos)
                                             Icons.Default.CheckCircle
-                                        else
-                                            Icons.Default.RadioButtonUnchecked,
+                                        else Icons.Default.RadioButtonUnchecked,
                                         contentDescription = null,
-                                        tint = if (terminosAceptados.aceptaTerminos)
-                                            primaryColor
-                                        else
-                                            onSurfaceVariantColor,
+                                        tint     = if (terminosAceptados.aceptaTerminos) primaryColor else onSurfaceVariantColor,
                                         modifier = Modifier.size(12.dp)
                                     )
                                     Text(
-                                        text = "T&C",
+                                        text  = "T&C",
                                         style = MaterialTheme.typography.labelSmall.copy(
-                                            color = if (terminosAceptados.aceptaTerminos)
-                                                primaryColor
-                                            else
-                                                onSurfaceVariantColor,
+                                            color      = if (terminosAceptados.aceptaTerminos) primaryColor else onSurfaceVariantColor,
                                             fontWeight = FontWeight.Bold
                                         )
                                     )
                                 }
                             }
-                            // Badge Datos
                             Surface(
                                 shape = RoundedCornerShape(20.dp),
                                 color = if (terminosAceptados.aceptaAlmacenamientoDatos)
                                     primaryColor.copy(alpha = 0.15f)
-                                else
-                                    surfaceContainerHighColor
+                                else surfaceContainerHighColor
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -651,22 +610,15 @@ fun RegisterPage(
                                     Icon(
                                         imageVector = if (terminosAceptados.aceptaAlmacenamientoDatos)
                                             Icons.Default.CheckCircle
-                                        else
-                                            Icons.Default.RadioButtonUnchecked,
+                                        else Icons.Default.RadioButtonUnchecked,
                                         contentDescription = null,
-                                        tint = if (terminosAceptados.aceptaAlmacenamientoDatos)
-                                            primaryColor
-                                        else
-                                            onSurfaceVariantColor,
+                                        tint     = if (terminosAceptados.aceptaAlmacenamientoDatos) primaryColor else onSurfaceVariantColor,
                                         modifier = Modifier.size(12.dp)
                                     )
                                     Text(
-                                        text = "Datos",
+                                        text  = "Datos",
                                         style = MaterialTheme.typography.labelSmall.copy(
-                                            color = if (terminosAceptados.aceptaAlmacenamientoDatos)
-                                                primaryColor
-                                            else
-                                                onSurfaceVariantColor,
+                                            color      = if (terminosAceptados.aceptaAlmacenamientoDatos) primaryColor else onSurfaceVariantColor,
                                             fontWeight = FontWeight.Bold
                                         )
                                     )
@@ -674,31 +626,27 @@ fun RegisterPage(
                             }
                         }
                         Icon(
-                            imageVector = Icons.Default.ChevronRight,
+                            imageVector        = Icons.Default.ChevronRight,
                             contentDescription = null,
-                            tint = onSurfaceVariantColor,
+                            tint     = onSurfaceVariantColor,
                             modifier = Modifier.size(20.dp)
                         )
                     }
 
-                    // Aviso si no se han aceptado y se intenta registrar
                     if (!terminosAceptados.puedeRegistrarse && errorMessage == "terminos") {
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Debes leer y aceptar los Términos y Condiciones para continuar.",
-                            color = MaterialTheme.colorScheme.error,
+                            text     = "Debes leer y aceptar los Términos y Condiciones para continuar.",
+                            color    = MaterialTheme.colorScheme.error,
                             fontSize = 12.sp
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
 
                     if (errorMessage != null && errorMessage != "terminos") {
                         Spacer(modifier = Modifier.height(12.dp))
                         Card(
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
-                            ),
+                                containerColor = MaterialTheme.colorScheme.errorContainer),
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Row(
@@ -708,13 +656,13 @@ fun RegisterPage(
                                 Icon(
                                     Icons.Default.Error,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
+                                    tint     = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = errorMessage!!,
-                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    text     = errorMessage!!,
+                                    color    = MaterialTheme.colorScheme.onErrorContainer,
                                     fontSize = 13.sp
                                 )
                             }
@@ -723,7 +671,7 @@ fun RegisterPage(
 
                     Spacer(modifier = Modifier.height(28.dp))
 
-                    // ── BOTÓN REGISTRAR ────────────────────────────────────
+                    // BOTÓN REGISTRAR
                     Button(
                         onClick = {
                             errorMessage = when {
@@ -731,29 +679,23 @@ fun RegisterPage(
                                         fechaNacimiento.isBlank() || correo.isBlank() || telefono.isBlank() ||
                                         contrasena.isBlank() || confirmarContrasena.isBlank() ->
                                     "Todos los campos son obligatorios"
-                                dni.length != 8 ->
-                                    "El DNI debe tener 8 dígitos"
+                                dni.length != 8 -> "El DNI debe tener 8 dígitos"
                                 fechaNacimiento.length < 8 || edad == null ->
                                     "Ingresa tu fecha de nacimiento válida"
-                                edad < 18 ->
-                                    "Debes ser mayor de 18 años para registrarte"
-                                correo.isBlank() || !correo.contains("@") ->
-                                    "Ingresa un correo válido"
-                                telefono.length < 9 ->
-                                    "Ingresa un teléfono válido"
+                                edad < 18 -> "Debes ser mayor de 18 años para registrarte"
+                                !correo.contains("@") -> "Ingresa un correo válido"
+                                telefono.length < 9 -> "Ingresa un teléfono válido"
                                 contrasena.length < 6 ->
                                     "La contraseña debe tener mínimo 6 caracteres"
                                 contrasena != confirmarContrasena ->
                                     "Las contraseñas no coinciden"
-                                !terminosAceptados.puedeRegistrarse ->
-                                    "terminos"
+                                !terminosAceptados.puedeRegistrarse -> "terminos"
                                 else -> null
                             }
                             if (errorMessage == null) {
                                 isLoading = true
                                 scope.launch(Dispatchers.IO) {
                                     try {
-                                        // Llamada a la API de Azure — registro de usuario
                                         val response = RetrofitClient.usuarioApi.registro(
                                             RegistroRequest(
                                                 nombre          = nombre.trim(),
@@ -771,16 +713,15 @@ fun RegisterPage(
                                             isLoading = false
                                             when (response.code()) {
                                                 201 -> {
-                                                    // Registro exitoso
-                                                    Toast.makeText(
-                                                        context,
-                                                        "¡Cuenta creada exitosamente!",
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
-                                                    onRegisterSuccess()
+                                                    toastRegistro = ToastData(
+                                                        icon     = Icons.Default.CheckCircle,
+                                                        iconBg   = Color(0xFFE8F5E9),
+                                                        iconTint = Color(0xFF2E7D32),
+                                                        title    = "¡Cuenta creada!",
+                                                        message  = "Registro exitoso. Ya puedes iniciar sesión."
+                                                    )
                                                 }
                                                 409 -> {
-                                                    // DNI o correo ya registrado
                                                     errorMessage = response.body()?.error
                                                         ?: "El usuario ya está registrado"
                                                 }
@@ -792,42 +733,35 @@ fun RegisterPage(
                                     } catch (e: Exception) {
                                         withContext(Dispatchers.Main) {
                                             isLoading = false
-                                            errorMessage = "Error: ${e.message ?: "Sin conexión. Verifica tu internet"}"
+                                            errorMessage = "Error: ${e.message ?: "Sin conexión"}"
                                         }
                                     }
                                 }
                             }
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(54.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
+                        modifier  = Modifier.fillMaxWidth().height(54.dp),
+                        shape     = RoundedCornerShape(12.dp),
+                        colors    = ButtonDefaults.buttonColors(
                             containerColor = primaryColor,
-                            contentColor = onPrimaryColor
+                            contentColor   = onPrimaryColor
                         ),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
-                        enabled = !isLoading
+                        enabled   = !isLoading
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(22.dp),
-                                color = onPrimaryColor,
+                                modifier    = Modifier.size(22.dp),
+                                color       = onPrimaryColor,
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            Text(
-                                text = "Crear Cuenta",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
+                            Text("Crear Cuenta", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = "→", fontSize = 16.sp)
+                            Text("→", fontSize = 16.sp)
                         }
                     }
 
                     Spacer(modifier = Modifier.height(20.dp))
-
                     HorizontalDivider(color = surfaceContainerHighColor)
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(
@@ -836,33 +770,40 @@ fun RegisterPage(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "¿Ya tienes cuenta?",
+                            text  = "¿Ya tienes cuenta?",
                             style = MaterialTheme.typography.bodyMedium.copy(color = onSurfaceVariantColor)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        TextButton(
-                            onClick = onBackToLogin,
-                            contentPadding = PaddingValues(0.dp)
-                        ) {
-                            Text(
-                                text = "Iniciar Sesión",
-                                fontWeight = FontWeight.Bold,
-                                color = primaryColor
-                            )
+                        TextButton(onClick = onBackToLogin, contentPadding = PaddingValues(0.dp)) {
+                            Text("Iniciar Sesión", fontWeight = FontWeight.Bold, color = primaryColor)
                         }
                     }
                 }
             }
         }
 
-        // ── Diálogo de Términos y Condiciones ────────────────────────────────
+        // Toast anclado arriba (dentro del Box raíz)
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+        ) {
+            SuccessToast(
+                toastData = toastRegistro,
+                onDismiss = {
+                    toastRegistro = null
+                    onRegisterSuccess()
+                }
+            )
+        }
+
+        // Diálogo de Términos y Condiciones
         if (mostrarDialogoTerminos) {
             TerminosCondicionesDialog(
                 onDismiss = { mostrarDialogoTerminos = false },
                 onAceptar = { aceptacion ->
                     terminosAceptados = aceptacion
                     mostrarDialogoTerminos = false
-                    // Limpiar el error de términos si ya fueron aceptados
                     if (errorMessage == "terminos") errorMessage = null
                 }
             )
@@ -870,16 +811,14 @@ fun RegisterPage(
     }
 }
 
-// ----- Composables reutilizables -----
-
 @Composable
-private fun RegisterFieldLabel(text: String, color: androidx.compose.ui.graphics.Color) {
+private fun RegisterFieldLabel(text: String, color: Color) {
     Text(
-        text = text,
+        text  = text,
         style = MaterialTheme.typography.labelSmall.copy(
-            color = color,
+            color         = color,
             letterSpacing = 0.8.sp,
-            fontWeight = FontWeight.SemiBold
+            fontWeight    = FontWeight.SemiBold
         )
     )
 }
@@ -890,31 +829,31 @@ private fun RegisterTextField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     keyboardType: KeyboardType = KeyboardType.Text,
-    primaryColor: androidx.compose.ui.graphics.Color,
-    onSurfaceColor: androidx.compose.ui.graphics.Color,
-    onSurfaceVariantColor: androidx.compose.ui.graphics.Color,
-    surfaceContainerLowColor: androidx.compose.ui.graphics.Color,
-    surfaceContainerHighColor: androidx.compose.ui.graphics.Color,
-    surfaceContainerHighestColor: androidx.compose.ui.graphics.Color,
-    outlineColor: androidx.compose.ui.graphics.Color,
+    primaryColor: Color,
+    onSurfaceColor: Color,
+    onSurfaceVariantColor: Color,
+    surfaceContainerLowColor: Color,
+    surfaceContainerHighColor: Color,
+    surfaceContainerHighestColor: Color,
+    outlineColor: Color,
     leadingIcon: @Composable (() -> Unit)? = null
 ) {
     OutlinedTextField(
-        value = value,
+        value         = value,
         onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
-        placeholder = { Text(placeholder, color = outlineColor) },
-        leadingIcon = leadingIcon,
-        singleLine = true,
+        modifier      = Modifier.fillMaxWidth(),
+        placeholder   = { Text(placeholder, color = outlineColor) },
+        leadingIcon   = leadingIcon,
+        singleLine    = true,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        shape = RoundedCornerShape(12.dp),
+        shape  = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = primaryColor,
-            unfocusedBorderColor = surfaceContainerHighColor,
-            focusedContainerColor = surfaceContainerHighestColor,
+            focusedBorderColor      = primaryColor,
+            unfocusedBorderColor    = surfaceContainerHighColor,
+            focusedContainerColor   = surfaceContainerHighestColor,
             unfocusedContainerColor = surfaceContainerLowColor,
-            focusedTextColor = onSurfaceColor,
-            unfocusedTextColor = onSurfaceColor,
+            focusedTextColor        = onSurfaceColor,
+            unfocusedTextColor      = onSurfaceColor,
         )
     )
 }

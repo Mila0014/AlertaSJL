@@ -15,8 +15,8 @@ const codigosRecuperacion = new Map();
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: "ingsistemascomp123@gmail.com",
-    pass: "cyzv jgnf iwat cbvs"
+    user: process.env.GMAIL_USER || "ingsistemascomp123@gmail.com",
+    pass: process.env.GMAIL_PASS || "cyzv jgnf iwat cbvs"
   }
 });
 
@@ -34,6 +34,13 @@ let pool;
 async function getPool() {
   if (!pool) pool = await sql.connect(dbConfig);
   return pool;
+}
+
+// ── Utilidades de fecha ────────────────────────────────────────────────────
+// BIGINT (millis) → ISO 8601 string  →  "2026-06-17T14:10:29.948Z"
+function millisToISO(timestampMillis) {
+  if (!timestampMillis) return null;
+  return new Date(Number(timestampMillis)).toISOString();
 }
 
 // ── Crear tablas si no existen ─────────────────────────────────────────────
@@ -80,9 +87,52 @@ async function crearTablas() {
   }
 }
 
+// ── Migración: agrega columnas nuevas si la tabla ya existía sin ellas ────
+async function agregarColumnasSiFaltan() {
+  try {
+    const p = await getPool();
+
+    await p.request().query(`
+      IF NOT EXISTS (
+        SELECT * FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_NAME = 'incidencias' AND COLUMN_NAME = 'fechaActualizacion'
+      )
+      ALTER TABLE incidencias ADD fechaActualizacion BIGINT DEFAULT 0
+    `);
+
+    await p.request().query(`
+      IF NOT EXISTS (
+        SELECT * FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_NAME = 'usuarios' AND COLUMN_NAME = 'fechaUltimoCambioPassword'
+      )
+      ALTER TABLE usuarios ADD fechaUltimoCambioPassword BIGINT DEFAULT 0
+    `);
+
+    console.log("✅ Columnas de fecha verificadas/agregadas");
+  } catch (err) {
+    console.error("❌ Error agregando columnas:", err.message);
+  }
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // USUARIOS
 // ═════════════════════════════════════════════════════════════════════════════
+
+// ── Serializa una fila de usuario al formato de respuesta ─────────────────
+// fechaRegistro se devuelve como ISO 8601; el resto de campos sin cambios.
+function serializarUsuario(row) {
+  return {
+    id:              row.id,
+    nombre:          row.nombre,
+    apellido:        row.apellido,
+    dni:             row.dni,
+    correo:          row.correo,
+    telefono:        row.telefono,
+    direccion:       row.direccion,
+    fechaRegistro:   millisToISO(row.fechaRegistro),   // ✅ ISO 8601
+    fechaNacimiento: row.fechaNacimiento
+  };
+}
 
 app.post("/api/usuarios/registro", async (req, res) => {
   try {
@@ -108,6 +158,11 @@ app.post("/api/usuarios/registro", async (req, res) => {
       return res.status(409).json({ error: campo });
     }
 
+    // Acepta ISO 8601 o millis desde el cliente; siempre guarda como millis en BD.
+    const fechaRegistroFinal = fechaRegistro
+      ? (isNaN(Number(fechaRegistro)) ? new Date(fechaRegistro).getTime() : Number(fechaRegistro))
+      : Date.now();
+
     const result = await p.request()
       .input("nombre",          sql.NVarChar(100), nombre.trim())
       .input("apellido",        sql.NVarChar(100), (apellido || "").trim())
@@ -116,7 +171,7 @@ app.post("/api/usuarios/registro", async (req, res) => {
       .input("telefono",        sql.NVarChar(20),  (telefono || "").trim())
       .input("contrasena",      sql.NVarChar(200), contrasena)
       .input("direccion",       sql.NVarChar(300), (direccion || "").trim())
-      .input("fechaRegistro",   sql.BigInt,        fechaRegistro || Date.now())
+      .input("fechaRegistro",   sql.BigInt,        fechaRegistroFinal)
       .input("fechaNacimiento", sql.NVarChar(20),  fechaNacimiento || "")
       .query(`
         INSERT INTO usuarios
@@ -127,7 +182,11 @@ app.post("/api/usuarios/registro", async (req, res) => {
       `);
 
     const nuevoId = result.recordset[0].id;
-    res.status(201).json({ mensaje: "Usuario registrado", id: nuevoId });
+    res.status(201).json({
+      mensaje:       "Usuario registrado",
+      id:            nuevoId,
+      fechaRegistro: millisToISO(fechaRegistroFinal)  // ✅ ISO 8601
+    });
 
   } catch (err) {
     console.error(err);
@@ -161,15 +220,7 @@ app.post("/api/usuarios/login", async (req, res) => {
 
     res.status(200).json({
       mensaje: "Login exitoso",
-      usuario: {
-        id:        usuario.id,
-        nombre:    usuario.nombre,
-        apellido:  usuario.apellido,
-        dni:       usuario.dni,
-        correo:    usuario.correo,
-        telefono:  usuario.telefono,
-        direccion: usuario.direccion
-      }
+      usuario: serializarUsuario(usuario)  // ✅ fechaRegistro como ISO 8601
     });
 
   } catch (err) {
@@ -184,7 +235,7 @@ app.get("/api/usuarios", async (req, res) => {
     const r = await p.request().query(
       "SELECT id, nombre, apellido, dni, correo, telefono, direccion, fechaRegistro, fechaNacimiento FROM usuarios ORDER BY id DESC"
     );
-    res.json(r.recordset);
+    res.json(r.recordset.map(serializarUsuario));  // ✅
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -197,7 +248,7 @@ app.get("/api/usuarios/:id", async (req, res) => {
       .input("id", sql.Int, parseInt(req.params.id))
       .query("SELECT id, nombre, apellido, dni, correo, telefono, direccion, fechaRegistro, fechaNacimiento FROM usuarios WHERE id = @id");
     if (r.recordset.length === 0) return res.status(404).json({ error: "Usuario no encontrado" });
-    res.json(r.recordset[0]);
+    res.json(serializarUsuario(r.recordset[0]));  // ✅
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -209,12 +260,12 @@ app.put("/api/usuarios/:id", async (req, res) => {
     const p = await getPool();
     const r = await p.request()
       .input("id",              sql.Int,           parseInt(req.params.id))
-      .input("nombre",          sql.NVarChar(100), nombre         || "")
-      .input("apellido",        sql.NVarChar(100), apellido       || "")
-      .input("dni",             sql.NVarChar(20),  dni            || "")
+      .input("nombre",          sql.NVarChar(100), nombre          || "")
+      .input("apellido",        sql.NVarChar(100), apellido        || "")
+      .input("dni",             sql.NVarChar(20),  dni             || "")
       .input("correo",          sql.NVarChar(200), (correo || "").toLowerCase())
-      .input("telefono",        sql.NVarChar(20),  telefono       || "")
-      .input("direccion",       sql.NVarChar(300), direccion      || "")
+      .input("telefono",        sql.NVarChar(20),  telefono        || "")
+      .input("direccion",       sql.NVarChar(300), direccion       || "")
       .input("fechaNacimiento", sql.NVarChar(20),  fechaNacimiento || "")
       .query(`
         UPDATE usuarios SET
@@ -246,12 +297,35 @@ app.delete("/api/usuarios/:id", async (req, res) => {
 // INCIDENCIAS
 // ═════════════════════════════════════════════════════════════════════════════
 
+// ── Serializa una fila de incidencia al formato de respuesta ──────────────
+function serializarIncidencia(row) {
+  return {
+    id:                 row.id,
+    tipo:               row.tipo,
+    descripcion:        row.descripcion,
+    ubicacion:          row.ubicacion,
+    latitud:            row.latitud,
+    longitud:           row.longitud,
+    evidencias:         row.evidencias,
+    imagenUri:          row.imagenUri,
+    fecha:              millisToISO(row.fecha),              // ✅ ISO 8601
+    estado:             row.estado,
+    usuarioId:          row.usuarioId,
+    fechaActualizacion: millisToISO(row.fechaActualizacion) // ✅ ISO 8601 (null si 0)
+  };
+}
+
 app.post("/api/incidencias", async (req, res) => {
   try {
     const { id, tipo, descripcion, ubicacion, latitud, longitud,
             evidencias, imagenUri, fecha, estado, usuarioId } = req.body;
 
     if (!id || !tipo) return res.status(400).json({ error: "id y tipo son obligatorios" });
+
+    // Igual que fechaRegistro: acepta ISO 8601 o millis
+    const fechaFinal = fecha
+      ? (isNaN(Number(fecha)) ? new Date(fecha).getTime() : Number(fecha))
+      : Date.now();
 
     const p = await getPool();
     await p.request()
@@ -263,7 +337,7 @@ app.post("/api/incidencias", async (req, res) => {
       .input("longitud",    sql.Float,             longitud    ?? null)
       .input("evidencias",  sql.NVarChar(sql.MAX), evidencias  || "")
       .input("imagenUri",   sql.NVarChar(500),     imagenUri   ?? null)
-      .input("fecha",       sql.BigInt,            fecha       || Date.now())
+      .input("fecha",       sql.BigInt,            fechaFinal)
       .input("estado",      sql.NVarChar(50),      estado      || "PENDIENTE")
       .input("usuarioId",   sql.Int,               usuarioId   || 0)
       .query(`
@@ -273,7 +347,11 @@ app.post("/api/incidencias", async (req, res) => {
           (@id,@tipo,@descripcion,@ubicacion,@latitud,@longitud,@evidencias,@imagenUri,@fecha,@estado,@usuarioId)
       `);
 
-    res.status(201).json({ mensaje: "Incidencia creada", id });
+    res.status(201).json({
+      mensaje: "Incidencia creada",
+      id,
+      fecha: millisToISO(fechaFinal)  // ✅ ISO 8601
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -283,7 +361,7 @@ app.get("/api/incidencias", async (req, res) => {
   try {
     const p = await getPool();
     const r = await p.request().query("SELECT * FROM incidencias ORDER BY fecha DESC");
-    res.json(r.recordset);
+    res.json(r.recordset.map(serializarIncidencia));  // ✅
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -293,7 +371,7 @@ app.get("/api/incidencias/usuario/:usuarioId", async (req, res) => {
     const r = await p.request()
       .input("usuarioId", sql.Int, parseInt(req.params.usuarioId))
       .query("SELECT * FROM incidencias WHERE usuarioId = @usuarioId ORDER BY fecha DESC");
-    res.json(r.recordset);
+    res.json(r.recordset.map(serializarIncidencia));  // ✅
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -304,33 +382,39 @@ app.get("/api/incidencias/:id", async (req, res) => {
       .input("id", sql.NVarChar(50), req.params.id)
       .query("SELECT * FROM incidencias WHERE id = @id");
     if (r.recordset.length === 0) return res.status(404).json({ error: "No encontrada" });
-    res.json(r.recordset[0]);
+    res.json(serializarIncidencia(r.recordset[0]));  // ✅
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.put("/api/incidencias/:id", async (req, res) => {
   try {
     const { tipo, descripcion, ubicacion, latitud, longitud, evidencias, imagenUri, estado } = req.body;
+    const fechaActualizacionMillis = Date.now();
     const p = await getPool();
     const r = await p.request()
-      .input("id",          sql.NVarChar(50),      req.params.id)
-      .input("tipo",        sql.NVarChar(100),     tipo)
-      .input("descripcion", sql.NVarChar(500),     descripcion || "")
-      .input("ubicacion",   sql.NVarChar(300),     ubicacion   || "")
-      .input("latitud",     sql.Float,             latitud     ?? null)
-      .input("longitud",    sql.Float,             longitud    ?? null)
-      .input("evidencias",  sql.NVarChar(sql.MAX), evidencias  || "")
-      .input("imagenUri",   sql.NVarChar(500),     imagenUri   ?? null)
-      .input("estado",      sql.NVarChar(50),      estado      || "PENDIENTE")
+      .input("id",                 sql.NVarChar(50),      req.params.id)
+      .input("tipo",               sql.NVarChar(100),     tipo)
+      .input("descripcion",        sql.NVarChar(500),     descripcion || "")
+      .input("ubicacion",          sql.NVarChar(300),     ubicacion   || "")
+      .input("latitud",            sql.Float,             latitud     ?? null)
+      .input("longitud",           sql.Float,             longitud    ?? null)
+      .input("evidencias",         sql.NVarChar(sql.MAX), evidencias  || "")
+      .input("imagenUri",          sql.NVarChar(500),     imagenUri   ?? null)
+      .input("estado",             sql.NVarChar(50),      estado      || "PENDIENTE")
+      .input("fechaActualizacion", sql.BigInt,            fechaActualizacionMillis)
       .query(`
         UPDATE incidencias SET
           tipo=@tipo, descripcion=@descripcion, ubicacion=@ubicacion,
           latitud=@latitud, longitud=@longitud, evidencias=@evidencias,
-          imagenUri=@imagenUri, estado=@estado
+          imagenUri=@imagenUri, estado=@estado, fechaActualizacion=@fechaActualizacion
         WHERE id=@id
       `);
     if (r.rowsAffected[0] === 0) return res.status(404).json({ error: "No encontrada" });
-    res.json({ mensaje: "Actualizada", id: req.params.id });
+    res.json({
+      mensaje:            "Actualizada",
+      id:                 req.params.id,
+      fechaActualizacion: millisToISO(fechaActualizacionMillis)  // ✅ ISO 8601
+    });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -434,16 +518,25 @@ app.post("/api/usuarios/nueva-contrasena", async (req, res) => {
       return res.status(400).json({ error: "Código incorrecto" });
     }
 
+    const fechaCambioMillis = Date.now();
     const p = await getPool();
     const r = await p.request()
-      .input("correo",     sql.NVarChar(200), key)
-      .input("contrasena", sql.NVarChar(200), nuevaContrasena)
-      .query("UPDATE usuarios SET contrasena = @contrasena WHERE correo = @correo");
+      .input("correo",      sql.NVarChar(200), key)
+      .input("contrasena",  sql.NVarChar(200), nuevaContrasena)
+      .input("fechaCambio", sql.BigInt,        fechaCambioMillis)
+      .query(`
+        UPDATE usuarios
+        SET contrasena = @contrasena, fechaUltimoCambioPassword = @fechaCambio
+        WHERE correo = @correo
+      `);
 
     if (r.rowsAffected[0] === 0) return res.status(404).json({ error: "Usuario no encontrado" });
 
     codigosRecuperacion.delete(key);
-    res.json({ mensaje: "Contraseña actualizada correctamente" });
+    res.json({
+      mensaje:    "Contraseña actualizada correctamente",
+      fechaCambio: millisToISO(fechaCambioMillis)  // ✅ ISO 8601
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -456,4 +549,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
   console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
   await crearTablas();
+  await agregarColumnasSiFaltan();
 });

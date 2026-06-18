@@ -48,6 +48,8 @@ import com.example.sjl_alert_v4.sharedPrefs.PreferenceManager
 import com.example.sjl_alert_v4.ui.theme.*
 import com.example.sjl_alert_v4.utilidades.LocationHelper
 import com.example.sjl_alert_v4.utilidades.MediaHelper
+import com.example.sjl_alert_v4.utilidades.SuccessToast
+import com.example.sjl_alert_v4.utilidades.ToastData
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.launch
 import org.osmdroid.config.Configuration
@@ -70,9 +72,9 @@ private data class TipoIncidencia(
 fun ReportsPreview() {
     SJL_Alert_v4Theme {
         ReportsPage(
-            onLogout = {},
+            onLogout             = {},
             onNavigateToDirectory = {},
-            onNavigateToSettings = {},
+            onNavigateToSettings  = {},
             onNavigateToMisReportes = {}
         )
     }
@@ -85,12 +87,12 @@ fun ReportsPage(
     onNavigateToSettings: () -> Unit,
     onNavigateToMisReportes: () -> Unit = {}
 ) {
-    val context     = LocalContext.current
-    val scope       = rememberCoroutineScope()
-    val db          = remember { AppDatabase.getInstance(context) }
-    val repo        = remember { IncidenciaRepository(db.incidenciaDao()) }
-    val prefManager = remember { PreferenceManager(context) }
-    val mediaHelper = remember { MediaHelper(context) }
+    val context        = LocalContext.current
+    val scope          = rememberCoroutineScope()
+    val db             = remember { AppDatabase.getInstance(context) }
+    val repo           = remember { IncidenciaRepository(db.incidenciaDao()) }
+    val prefManager    = remember { PreferenceManager(context) }
+    val mediaHelper    = remember { MediaHelper(context) }
     val locationHelper = remember { LocationHelper(context) }
 
     val primaryColor          = MaterialTheme.colorScheme.primary
@@ -111,7 +113,6 @@ fun ReportsPage(
             Color(0xFFE8F5E9), Color(0xFF2E7D32))
     )
 
-    // ── Estado del formulario ──────────────────────────────────────────────
     var tipoSeleccionadoId  by remember { mutableStateOf<String?>(null) }
     var tipoPersonalizado   by remember { mutableStateOf("") }
     var ubicacion           by remember { mutableStateOf(strObteniendoUbic) }
@@ -122,19 +123,15 @@ fun ReportsPage(
     var cargando            by remember { mutableStateOf(false) }
     var mostrarConfirmacion by remember { mutableStateOf(false) }
     var intentoEnvio        by remember { mutableStateOf(false) }
+    var toastAlerta         by remember { mutableStateOf<ToastData?>(null) }
 
-    // ── Estado GPS — SIN DUPLICAR ──────────────────────────────────────────
     var gpsDesactivado    by remember { mutableStateOf(false) }
     var mostrarDialogoGps by remember { mutableStateOf(false) }
 
-    // ── Mapa OSMDroid ──────────────────────────────────────────────────────
     var geoPoint by remember { mutableStateOf<GeoPoint?>(null) }
     var mapView  by remember { mutableStateOf<MapView?>(null) }
+    var fotoUri  by remember { mutableStateOf<Uri?>(null) }
 
-    // ── URI temporal para foto de cámara ───────────────────────────────────
-    var fotoUri by remember { mutableStateOf<Uri?>(null) }
-
-    // ── Launchers ─────────────────────────────────────────────────────────
     val galeriaLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetMultipleContents()
     ) { uris -> urisSeleccionadas = urisSeleccionadas + uris }
@@ -163,7 +160,6 @@ fun ReportsPage(
         else Toast.makeText(context, "Permiso de almacenamiento denegado. Actívalo en Ajustes.", Toast.LENGTH_LONG).show()
     }
 
-    // ── Función: obtener ubicación usando LocationHelper ──────────────────
     fun obtenerUbicacionGps() {
         ubicacion = strObteniendoUbic
         locationHelper.getCurrentLocation { loc ->
@@ -196,24 +192,18 @@ fun ReportsPage(
         }
     }
 
-    // ── Función: solicitar ubicación con verificación de GPS ──────────────
     fun solicitarUbicacion() {
-        // Verificar si el GPS está activado
         val locationManager = context.getSystemService(android.content.Context.LOCATION_SERVICE)
                 as android.location.LocationManager
         val gpsHabilitado = locationManager.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER)
                 || locationManager.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER)
-
         if (!gpsHabilitado) {
-            // ← AQUÍ se activa el diálogo de GPS desactivado
             gpsDesactivado    = true
             mostrarDialogoGps = true
             ubicacion = "Activa el GPS para detectar tu ubicación"
             return
         }
-
         gpsDesactivado = false
-
         if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             obtenerUbicacionGps()
@@ -225,10 +215,7 @@ fun ReportsPage(
         }
     }
 
-    // ── Solicitar ubicación al abrir la pantalla ───────────────────────────
-    LaunchedEffect(Unit) {
-        solicitarUbicacion()
-    }
+    LaunchedEffect(Unit) { solicitarUbicacion() }
 
     val etiquetaTipo by remember(tipoSeleccionadoId, tipoPersonalizado) {
         derivedStateOf {
@@ -258,12 +245,11 @@ fun ReportsPage(
         }
     }
 
-    // ── Guardar en Room y sincronizar ──────────────────────────────────────
     fun guardarReporte() {
         scope.launch {
             cargando = true
             try {
-                val usuarioId = prefManager.getSesionUsuarioId()
+                val usuarioId  = prefManager.getSesionUsuarioId()
                 val incidencia = IncidenciaEntity(
                     id          = UUID.randomUUID().toString(),
                     tipo        = etiquetaTipo,
@@ -278,13 +264,26 @@ fun ReportsPage(
                     usuarioId   = usuarioId
                 )
                 val resultado = repo.crear(incidencia)
-                val mensaje = when (resultado) {
-                    is ResultadoApi.Exito -> strAlertaEnviada
-                    is ResultadoApi.Error -> "Guardado local. Sin conexión: ${resultado.mensaje}"
-                }
-                Toast.makeText(context, mensaje, Toast.LENGTH_SHORT).show()
                 cargando = false
-                onNavigateToMisReportes()
+                when (resultado) {
+                    is ResultadoApi.Exito -> {
+                        toastAlerta = ToastData(
+                            icon     = Icons.Default.Campaign,
+                            iconBg   = Color(0xFFFFEBEE),
+                            iconTint = DeepRed,
+                            title    = "¡Alerta enviada!",
+                            message  = "El equipo de seguridad ha sido notificado."
+                        )
+                    }
+                    is ResultadoApi.Error -> {
+                        Toast.makeText(
+                            context,
+                            "Guardado local. Sin conexión: ${resultado.mensaje}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        onNavigateToMisReportes()
+                    }
+                }
             } catch (e: Exception) {
                 cargando = false
                 Toast.makeText(context, strErrorGuardar.format(e.message), Toast.LENGTH_LONG).show()
@@ -292,7 +291,6 @@ fun ReportsPage(
         }
     }
 
-    // ── UI ─────────────────────────────────────────────────────────────────
     Scaffold(
         topBar = { TopHeader(onLogout = onLogout, onNavigateToSettings = onNavigateToSettings) },
         bottomBar = {
@@ -305,268 +303,279 @@ fun ReportsPage(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-        ) {
-            Spacer(modifier = Modifier.height(20.dp))
 
-            Text(stringResource(R.string.reportar_incidencia),
-                fontSize = 28.sp, fontWeight = FontWeight.Bold, color = primaryColor)
-            Text(stringResource(R.string.reportar_subtitulo),
-                fontSize = 16.sp, color = onSurfaceVariantColor, lineHeight = 22.sp,
-                modifier = Modifier.padding(vertical = 8.dp))
+        Box(modifier = Modifier.fillMaxSize()) {
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // ── 1. Tipo de Incidencia ──────────────────────────────────────
-            SeccionTitulo(stringResource(R.string.tipo_incidencia))
-            Spacer(modifier = Modifier.height(12.dp))
-
-            tipos.chunked(2).forEach { fila ->
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    fila.forEachIndexed { idx, tipo ->
-                        ReportCard(
-                            title      = tipo.titulo,
-                            icon       = tipo.icono,
-                            iconBg     = tipo.iconoBg,
-                            iconColor  = tipo.iconoColor,
-                            modifier   = Modifier.weight(1f),
-                            isSelected = tipoSeleccionadoId == tipo.id,
-                            onClick    = { tipoSeleccionadoId = tipo.id }
-                        )
-                        if (idx < fila.size - 1) Spacer(modifier = Modifier.width(16.dp))
-                    }
-                    if (fila.size == 1) Spacer(modifier = Modifier.weight(1f))
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            AnimatedVisibility(visible = tipoSeleccionadoId == "otro") {
-                OutlinedTextField(
-                    value         = tipoPersonalizado,
-                    onValueChange = { tipoPersonalizado = it },
-                    label         = { Text(stringResource(R.string.describe_tipo)) },
-                    placeholder   = { Text(stringResource(R.string.describe_tipo_placeholder)) },
-                    modifier      = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                    shape         = RoundedCornerShape(12.dp),
-                    singleLine    = true,
-                    leadingIcon   = { Icon(Icons.Default.Edit, contentDescription = null, tint = primaryColor) }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // ── 2. Ubicación ───────────────────────────────────────────────
-            SeccionTitulo(stringResource(R.string.ubicacion_actual))
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Box(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
             ) {
-                AndroidView(
-                    modifier = Modifier.fillMaxSize(),
-                    factory  = { ctx ->
-                        Configuration.getInstance().load(
-                            ctx, android.preference.PreferenceManager.getDefaultSharedPreferences(ctx))
-                        MapView(ctx).apply {
-                            setTileSource(TileSourceFactory.MAPNIK)
-                            setMultiTouchControls(false)
-                            isClickable = false
-                            controller.setZoom(17.5)
-                            mapView = this
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text(stringResource(R.string.reportar_incidencia),
+                    fontSize = 28.sp, fontWeight = FontWeight.Bold, color = primaryColor)
+                Text(stringResource(R.string.reportar_subtitulo),
+                    fontSize = 16.sp, color = onSurfaceVariantColor, lineHeight = 22.sp,
+                    modifier = Modifier.padding(vertical = 8.dp))
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                SeccionTitulo(stringResource(R.string.tipo_incidencia))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                tipos.chunked(2).forEach { fila ->
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        fila.forEachIndexed { idx, tipo ->
+                            ReportCard(
+                                title      = tipo.titulo,
+                                icon       = tipo.icono,
+                                iconBg     = tipo.iconoBg,
+                                iconColor  = tipo.iconoColor,
+                                modifier   = Modifier.weight(1f),
+                                isSelected = tipoSeleccionadoId == tipo.id,
+                                onClick    = { tipoSeleccionadoId = tipo.id }
+                            )
+                            if (idx < fila.size - 1) Spacer(modifier = Modifier.width(16.dp))
                         }
-                    },
-                    update = { map ->
-                        mapView = map
-                        geoPoint?.let { punto ->
-                            map.overlays.clear()
-                            map.controller.setZoom(17.5)
-                            map.controller.setCenter(punto)
-                            map.invalidate()
-                        }
+                        if (fila.size == 1) Spacer(modifier = Modifier.weight(1f))
                     }
-                )
-
-                val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-                val escala by infiniteTransition.animateFloat(
-                    initialValue = 1f, targetValue = 1.8f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(900, easing = FastOutSlowInEasing),
-                        repeatMode = RepeatMode.Reverse), label = "escala")
-                val alpha by infiniteTransition.animateFloat(
-                    initialValue = 0.5f, targetValue = 0f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(900), repeatMode = RepeatMode.Reverse), label = "alpha")
-
-                Box(modifier = Modifier.align(Alignment.Center), contentAlignment = Alignment.Center) {
-                    Box(modifier = Modifier.size((28 * escala).dp).clip(CircleShape).background(DeepRed.copy(alpha = alpha)))
-                    Box(modifier = Modifier.size(14.dp).clip(CircleShape).background(DeepRed).border(2.dp, Color.White, CircleShape))
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                Text(stringResource(R.string.en_tiempo_real),
-                    modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
-                    fontSize = 10.sp, fontWeight = FontWeight.Bold, color = primaryColor)
+                AnimatedVisibility(visible = tipoSeleccionadoId == "otro") {
+                    OutlinedTextField(
+                        value         = tipoPersonalizado,
+                        onValueChange = { tipoPersonalizado = it },
+                        label         = { Text(stringResource(R.string.describe_tipo)) },
+                        placeholder   = { Text(stringResource(R.string.describe_tipo_placeholder)) },
+                        modifier      = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        shape         = RoundedCornerShape(12.dp),
+                        singleLine    = true,
+                        leadingIcon   = { Icon(Icons.Default.Edit, null, tint = primaryColor) }
+                    )
+                }
 
-                Surface(
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp)
-                        .clickable { solicitarUbicacion() },
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                    shadowElevation = 4.dp
+                Spacer(modifier = Modifier.height(8.dp))
+
+                SeccionTitulo(stringResource(R.string.ubicacion_actual))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(16.dp))
                 ) {
-                    Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            if (gpsDesactivado) Icons.Default.GpsOff else Icons.Default.MyLocation,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = if (gpsDesactivado) Color(0xFFE65100) else onSurfaceVariantColor
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = ubicacion, fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+                    AndroidView(
+                        modifier = Modifier.fillMaxSize(),
+                        factory  = { ctx ->
+                            Configuration.getInstance().load(
+                                ctx, android.preference.PreferenceManager.getDefaultSharedPreferences(ctx))
+                            MapView(ctx).apply {
+                                setTileSource(TileSourceFactory.MAPNIK)
+                                setMultiTouchControls(false)
+                                isClickable = false
+                                controller.setZoom(17.5)
+                                mapView = this
+                            }
+                        },
+                        update = { map ->
+                            mapView = map
+                            geoPoint?.let { punto ->
+                                map.overlays.clear()
+                                map.controller.setZoom(17.5)
+                                map.controller.setCenter(punto)
+                                map.invalidate()
+                            }
+                        }
+                    )
+
+                    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+                    val escala by infiniteTransition.animateFloat(
+                        initialValue = 1f, targetValue = 1.8f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(900, easing = FastOutSlowInEasing),
+                            repeatMode = RepeatMode.Reverse), label = "escala")
+                    val alpha by infiniteTransition.animateFloat(
+                        initialValue = 0.5f, targetValue = 0f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(900), repeatMode = RepeatMode.Reverse), label = "alpha")
+
+                    Box(modifier = Modifier.align(Alignment.Center), contentAlignment = Alignment.Center) {
+                        Box(modifier = Modifier.size((28 * escala).dp).clip(CircleShape).background(DeepRed.copy(alpha = alpha)))
+                        Box(modifier = Modifier.size(14.dp).clip(CircleShape).background(DeepRed).border(2.dp, Color.White, CircleShape))
                     }
-                }
-            }
 
-            Spacer(modifier = Modifier.height(12.dp))
+                    Text(stringResource(R.string.en_tiempo_real),
+                        modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
+                        fontSize = 10.sp, fontWeight = FontWeight.Bold, color = primaryColor)
 
-            OutlinedButton(
-                onClick  = { ubicacionTemporal = ubicacion; editandoUbicacion = true },
-                modifier = Modifier.fillMaxWidth(),
-                shape    = RoundedCornerShape(12.dp),
-                colors   = ButtonDefaults.outlinedButtonColors(contentColor = primaryColor)
-            ) {
-                Icon(Icons.Default.EditLocation, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.modificar_ubicacion))
-            }
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // ── 3. Adjuntar Evidencia ──────────────────────────────────────
-            SeccionTitulo(stringResource(R.string.adjuntar_evidencia))
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(modifier = Modifier.fillMaxWidth()) {
-                BotonEvidencia(
-                    icono    = Icons.Default.Upload,
-                    etiqueta = stringResource(R.string.subir_foto_video),
-                    modifier = Modifier.weight(1f),
-                    onClick  = { abrirGaleriaConPermiso() }
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                BotonEvidencia(
-                    icono    = Icons.Default.CameraAlt,
-                    etiqueta = stringResource(R.string.tomar_foto),
-                    modifier = Modifier.weight(1f),
-                    onClick  = { abrirCamaraConPermiso() }
-                )
-            }
-
-            AnimatedVisibility(visible = urisSeleccionadas.isNotEmpty()) {
-                Column(modifier = Modifier.padding(top = 12.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null,
-                            tint = Color(0xFF2E7D32), modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(stringResource(R.string.archivos_adjuntos, urisSeleccionadas.size),
-                            fontSize = 14.sp, color = Color(0xFF2E7D32), fontWeight = FontWeight.Medium)
-                        Spacer(modifier = Modifier.weight(1f))
-                        TextButton(onClick = { urisSeleccionadas = emptyList() }) {
-                            Text(stringResource(R.string.quitar_todo), color = DeepRed, fontSize = 13.sp)
+                    Surface(
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp)
+                            .clickable { solicitarUbicacion() },
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                        shadowElevation = 4.dp
+                    ) {
+                        Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                if (gpsDesactivado) Icons.Default.GpsOff else Icons.Default.MyLocation,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = if (gpsDesactivado) Color(0xFFE65100) else onSurfaceVariantColor
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = ubicacion, fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    urisSeleccionadas.chunked(2).forEach { fila ->
-                        Row(modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            fila.forEach { uri ->
-                                Box(modifier = Modifier.weight(1f).height(120.dp).clip(RoundedCornerShape(10.dp))) {
-                                    Image(painter = rememberAsyncImagePainter(uri),
-                                        contentDescription = "Vista previa",
-                                        modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                                    IconButton(
-                                        onClick  = { urisSeleccionadas = urisSeleccionadas - uri },
-                                        modifier = Modifier.align(Alignment.TopEnd).size(28.dp)
-                                            .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(50))
-                                    ) {
-                                        Icon(Icons.Default.Close, contentDescription = "Quitar imagen",
-                                            tint = Color.White, modifier = Modifier.size(14.dp))
-                                    }
-                                }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedButton(
+                    onClick  = { ubicacionTemporal = ubicacion; editandoUbicacion = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape    = RoundedCornerShape(12.dp),
+                    colors   = ButtonDefaults.outlinedButtonColors(contentColor = primaryColor)
+                ) {
+                    Icon(Icons.Default.EditLocation, null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.modificar_ubicacion))
+                }
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                SeccionTitulo(stringResource(R.string.adjuntar_evidencia))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    BotonEvidencia(
+                        icono    = Icons.Default.Upload,
+                        etiqueta = stringResource(R.string.subir_foto_video),
+                        modifier = Modifier.weight(1f),
+                        onClick  = { abrirGaleriaConPermiso() }
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    BotonEvidencia(
+                        icono    = Icons.Default.CameraAlt,
+                        etiqueta = stringResource(R.string.tomar_foto),
+                        modifier = Modifier.weight(1f),
+                        onClick  = { abrirCamaraConPermiso() }
+                    )
+                }
+
+                AnimatedVisibility(visible = urisSeleccionadas.isNotEmpty()) {
+                    Column(modifier = Modifier.padding(top = 12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.CheckCircle, null,
+                                tint = Color(0xFF2E7D32), modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(stringResource(R.string.archivos_adjuntos, urisSeleccionadas.size),
+                                fontSize = 14.sp, color = Color(0xFF2E7D32), fontWeight = FontWeight.Medium)
+                            Spacer(modifier = Modifier.weight(1f))
+                            TextButton(onClick = { urisSeleccionadas = emptyList() }) {
+                                Text(stringResource(R.string.quitar_todo), color = DeepRed, fontSize = 13.sp)
                             }
-                            if (fila.size == 1) Spacer(modifier = Modifier.weight(1f))
                         }
                         Spacer(modifier = Modifier.height(8.dp))
+                        urisSeleccionadas.chunked(2).forEach { fila ->
+                            Row(modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                fila.forEach { uri ->
+                                    Box(modifier = Modifier.weight(1f).height(120.dp).clip(RoundedCornerShape(10.dp))) {
+                                        Image(painter = rememberAsyncImagePainter(uri),
+                                            contentDescription = "Vista previa",
+                                            modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                                        IconButton(
+                                            onClick  = { urisSeleccionadas = urisSeleccionadas - uri },
+                                            modifier = Modifier.align(Alignment.TopEnd).size(28.dp)
+                                                .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(50))
+                                        ) {
+                                            Icon(Icons.Default.Close, "Quitar imagen",
+                                                tint = Color.White, modifier = Modifier.size(14.dp))
+                                        }
+                                    }
+                                }
+                                if (fila.size == 1) Spacer(modifier = Modifier.weight(1f))
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                SeccionTitulo(stringResource(R.string.comentario_adicional))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value         = comentario,
+                    onValueChange = { comentario = it },
+                    placeholder   = { Text(stringResource(R.string.comentario_placeholder)) },
+                    modifier      = Modifier.fillMaxWidth().height(120.dp),
+                    shape         = RoundedCornerShape(12.dp),
+                    maxLines      = 5,
+                    isError       = intentoEnvio && comentario.isBlank(),
+                    supportingText = {
+                        if (intentoEnvio && comentario.isBlank()) {
+                            Text("La descripción es obligatoria",
+                                color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Button(
+                    onClick = {
+                        intentoEnvio = true
+                        if (comentario.isNotBlank()) mostrarConfirmacion = true
+                    },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape    = RoundedCornerShape(16.dp),
+                    colors   = ButtonDefaults.buttonColors(containerColor = DeepRed),
+                    enabled  = tipoSeleccionadoId != null &&
+                            (tipoSeleccionadoId != "otro" || tipoPersonalizado.isNotBlank()) &&
+                            !cargando
+                ) {
+                    if (cargando) {
+                        CircularProgressIndicator(modifier = Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
+                    } else {
+                        Icon(Icons.Default.Campaign, null)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(stringResource(R.string.enviar_alerta), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Text(stringResource(R.string.enviar_alerta_aviso),
+                    fontSize = 12.sp, color = onSurfaceVariantColor, lineHeight = 18.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 24.dp))
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // ── 4. Comentario / Descripción ────────────────────────────────
-            SeccionTitulo(stringResource(R.string.comentario_adicional))
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value         = comentario,
-                onValueChange = { comentario = it },
-                placeholder   = { Text(stringResource(R.string.comentario_placeholder)) },
-                modifier      = Modifier.fillMaxWidth().height(120.dp),
-                shape         = RoundedCornerShape(12.dp),
-                maxLines      = 5,
-                isError       = intentoEnvio && comentario.isBlank(),
-                supportingText = {
-                    if (intentoEnvio && comentario.isBlank()) {
-                        Text(
-                            text     = "La descripción es obligatoria",
-                            color    = MaterialTheme.colorScheme.error,
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // ── 5. Botón Enviar Alerta ─────────────────────────────────────
-            Button(
-                onClick = {
-                    intentoEnvio = true
-                    if (comentario.isNotBlank()) mostrarConfirmacion = true
-                },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape    = RoundedCornerShape(16.dp),
-                colors   = ButtonDefaults.buttonColors(containerColor = DeepRed),
-                enabled  = tipoSeleccionadoId != null &&
-                        (tipoSeleccionadoId != "otro" || tipoPersonalizado.isNotBlank()) &&
-                        !cargando
+            // Toast anclado arriba dentro del Box
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = paddingValues.calculateTopPadding())
             ) {
-                if (cargando) {
-                    CircularProgressIndicator(modifier = Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
-                } else {
-                    Icon(Icons.Default.Campaign, contentDescription = null)
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(stringResource(R.string.enviar_alerta), fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                }
+                SuccessToast(
+                    toastData = toastAlerta,
+                    onDismiss = {
+                        toastAlerta = null
+                        onNavigateToMisReportes()
+                    }
+                )
             }
-
-            Text(stringResource(R.string.enviar_alerta_aviso),
-                fontSize = 12.sp, color = onSurfaceVariantColor, lineHeight = 18.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 24.dp))
         }
     }
 
-    // ── Diálogo: GPS desactivado ───────────────────────────────────────────
+    // Diálogo: GPS desactivado
     if (mostrarDialogoGps) {
         AlertDialog(
             onDismissRequest = { mostrarDialogoGps = false },
@@ -585,12 +594,11 @@ fun ReportsPage(
                     onClick = {
                         mostrarDialogoGps = false
                         context.startActivity(
-                            android.content.Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-                        )
+                            android.content.Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS))
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE65100))
                 ) {
-                    Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Settings, null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Activar GPS")
                 }
@@ -605,12 +613,12 @@ fun ReportsPage(
         )
     }
 
-    // ── Diálogo: Modificar ubicación ───────────────────────────────────────
+    // Diálogo: Modificar ubicación
     if (editandoUbicacion) {
         AlertDialog(
             onDismissRequest = { editandoUbicacion = false },
             title = { Text(stringResource(R.string.modificar_ubicacion_titulo), fontWeight = FontWeight.Bold) },
-            text = {
+            text  = {
                 OutlinedTextField(
                     value         = ubicacionTemporal,
                     onValueChange = { ubicacionTemporal = it },
@@ -618,7 +626,7 @@ fun ReportsPage(
                     modifier      = Modifier.fillMaxWidth(),
                     shape         = RoundedCornerShape(12.dp),
                     leadingIcon   = {
-                        Icon(Icons.Default.EditLocation, contentDescription = null, tint = primaryColor)
+                        Icon(Icons.Default.EditLocation, null, tint = primaryColor)
                     }
                 )
             },
@@ -632,9 +640,7 @@ fun ReportsPage(
                                 val geocoder = Geocoder(context, Locale("es", "PE"))
                                 val resultados = geocoder.getFromLocationName(ubicacionTemporal.trim(), 1)
                                 if (!resultados.isNullOrEmpty()) {
-                                    val lat = resultados[0].latitude
-                                    val lng = resultados[0].longitude
-                                    val nuevoPunto = GeoPoint(lat, lng)
+                                    val nuevoPunto = GeoPoint(resultados[0].latitude, resultados[0].longitude)
                                     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                                         geoPoint = nuevoPunto
                                         mapView?.controller?.animateTo(nuevoPunto)
@@ -642,7 +648,7 @@ fun ReportsPage(
                                         mapView?.invalidate()
                                     }
                                 }
-                            } catch (e: Exception) { /* mantiene ubicación de texto */ }
+                            } catch (e: Exception) { }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
@@ -656,7 +662,7 @@ fun ReportsPage(
         )
     }
 
-    // ── Diálogo: Confirmar envío ───────────────────────────────────────────
+    // Diálogo: Confirmar envío
     if (mostrarConfirmacion) {
         AlertDialog(
             onDismissRequest = { mostrarConfirmacion = false },
@@ -664,7 +670,7 @@ fun ReportsPage(
             title = { Text(stringResource(R.string.enviar_alerta_pregunta), fontWeight = FontWeight.Bold) },
             text  = {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FilaConfirmacion(stringResource(R.string.tipo_label),      etiquetaTipo)
+                    FilaConfirmacion(stringResource(R.string.tipo_label), etiquetaTipo)
                     FilaConfirmacion(stringResource(R.string.ubicacion_label), ubicacion)
                     FilaConfirmacion(stringResource(R.string.archivos_label),
                         stringResource(R.string.archivos_adjuntos, urisSeleccionadas.size))
@@ -687,8 +693,6 @@ fun ReportsPage(
     }
 }
 
-// ── Composables privados ──────────────────────────────────────────────────────
-
 @Composable
 private fun SeccionTitulo(texto: String) {
     Text(texto, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
@@ -708,7 +712,7 @@ private fun BotonEvidencia(icono: ImageVector, etiqueta: String, modifier: Modif
         Column(modifier = Modifier.fillMaxSize().padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center) {
-            Icon(icono, contentDescription = null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.primary)
+            Icon(icono, null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.height(6.dp))
             Text(etiqueta, fontSize = 13.sp, fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface, textAlign = TextAlign.Center, lineHeight = 16.sp)
@@ -755,17 +759,16 @@ fun TopHeader(onLogout: () -> Unit, onNavigateToSettings: () -> Unit, onNavigate
                 fontSize = 20.sp, color = primaryColor)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.NotificationsNone, contentDescription = null, tint = onSurfaceVariantColor)
+            Icon(Icons.Default.NotificationsNone, null, tint = onSurfaceVariantColor)
             Spacer(modifier = Modifier.width(16.dp))
             IconButton(onClick = { mostrarDialogo = true }) {
-                Icon(Icons.Default.Logout, contentDescription = stringResource(R.string.logout),
-                    tint = onSurfaceVariantColor)
+                Icon(Icons.Default.Logout, stringResource(R.string.logout), tint = onSurfaceVariantColor)
             }
             Spacer(modifier = Modifier.width(8.dp))
             IconButton(onClick = onNavigateToSettings) {
                 Box(modifier = Modifier.size(36.dp).clip(CircleShape).background(onSurfaceColor),
                     contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.configuracion_btn),
+                    Icon(Icons.Default.Settings, stringResource(R.string.configuracion_btn),
                         tint = surfaceColor, modifier = Modifier.size(20.dp))
                 }
             }
@@ -793,7 +796,7 @@ fun ReportCard(
         Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.Center) {
             Box(modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(iconBg),
                 contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, tint = iconColor)
+                Icon(icon, null, tint = iconColor)
             }
             Spacer(modifier = Modifier.height(12.dp))
             Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
@@ -830,8 +833,7 @@ fun BottomNavItem(icon: ImageVector, label: String, isSelected: Boolean, onClick
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(icon, contentDescription = label,
-            tint = if (isSelected) primaryColor else onSurfaceVariantColor)
+        Icon(icon, label, tint = if (isSelected) primaryColor else onSurfaceVariantColor)
         Text(label, fontSize = 12.sp,
             color = if (isSelected) primaryColor else onSurfaceVariantColor,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
