@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sjl_alert_v4.modelos.*
@@ -171,32 +172,55 @@ fun CrudIncidenciasPage(onBack: () -> Unit) {
             title = { Text("¿Eliminar incidencia?", fontWeight = FontWeight.Bold) },
             text  = { Text("Se eliminará '${inc.tipo}' tanto del dispositivo como de Azure SQL.") },
             confirmButton = {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            cargando = true
-                            val r = repo.eliminar(inc)
-                            cargando = false
-                            incidenciaAEliminar = null
-                            if (r is ResultadoApi.Exito) {
-                                toastCrud = ToastData(
-                                    icon     = Icons.Default.CheckCircle,
-                                    iconBg   = Color(0xFFE8F5E9),
-                                    iconTint = Color(0xFF2E7D32),
-                                    title    = "Eliminado",
-                                    message  = "La incidencia fue borrada correctamente."
-                                )
-                            } else {
-                                mostrarMensaje((r as ResultadoApi.Error).mensaje)
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { incidenciaAEliminar = null },
+                        modifier = Modifier.weight(1f).fillMaxHeight().defaultMinSize(minHeight = 48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = "Cancelar",
+                            color = primaryColor,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                cargando = true
+                                val r = repo.eliminar(inc)
+                                cargando = false
+                                incidenciaAEliminar = null
+                                if (r is ResultadoApi.Exito) {
+                                    toastCrud = ToastData(
+                                        icon     = Icons.Default.CheckCircle,
+                                        iconBg   = Color(0xFFE8F5E9),
+                                        iconTint = Color(0xFF2E7D32),
+                                        title    = "Eliminado",
+                                        message  = "La incidencia fue borrada correctamente."
+                                    )
+                                } else {
+                                    mostrarMensaje((r as ResultadoApi.Error).mensaje)
+                                }
                             }
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = DeepRed)
-                ) { Text("Eliminar") }
+                        },
+                        modifier = Modifier.weight(1f).fillMaxHeight().defaultMinSize(minHeight = 48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = DeepRed, contentColor = Color.White),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = "Eliminar",
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
             },
-            dismissButton = {
-                TextButton(onClick = { incidenciaAEliminar = null }) { Text("Cancelar") }
-            }
+            dismissButton = null
         )
     }
 }
@@ -276,7 +300,7 @@ private fun TarjetaIncidenciaCrud(
                         modifier       = Modifier.height(34.dp),
                         shape          = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp),
-                        colors         = ButtonDefaults.buttonColors(containerColor = DeepRed)
+                        colors         = ButtonDefaults.buttonColors(containerColor = DeepRed, contentColor = Color.White)
                     ) {
                         Icon(Icons.Default.Delete, null, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
@@ -366,21 +390,44 @@ private fun DialogoEditar(
             }
         },
         confirmButton = {
-            Button(
-                onClick  = {
-                    onGuardar(incidencia.copy(
-                        tipo        = tipo.trim(),
-                        descripcion = descripcion.trim(),
-                        ubicacion   = ubicacion.trim(),
-                        estado      = estado
-                    ))
-                },
-                enabled = tipo.isNotBlank(),
-                colors  = ButtonDefaults.buttonColors(containerColor = primaryColor)
-            ) { Text("Guardar") }
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick  = onDismiss,
+                    modifier = Modifier.weight(1f).fillMaxHeight().defaultMinSize(minHeight = 48.dp),
+                    shape    = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = "Cancelar",
+                        color = primaryColor,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                Button(
+                    onClick  = {
+                        onGuardar(incidencia.copy(
+                            tipo        = tipo.trim(),
+                            descripcion = descripcion.trim(),
+                            ubicacion   = ubicacion.trim(),
+                            estado      = estado
+                        ))
+                    },
+                    modifier = Modifier.weight(1f).fillMaxHeight().defaultMinSize(minHeight = 48.dp),
+                    enabled  = tipo.isNotBlank(),
+                    shape    = RoundedCornerShape(12.dp),
+                    colors   = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = "Guardar",
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
-        }
+        dismissButton = null
     )
 }

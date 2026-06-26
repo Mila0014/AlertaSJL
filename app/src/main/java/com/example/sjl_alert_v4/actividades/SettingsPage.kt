@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -221,19 +222,40 @@ fun AjustesPrefs(
                 Text(stringResource(R.string.salir_pregunta))
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        mostrarDialogoLogout = false
-                        onLogout()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
-                ) { Text(stringResource(R.string.salir_confirmar)) }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { mostrarDialogoLogout = false }) {
-                    Text(stringResource(R.string.cancelar))
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { mostrarDialogoLogout = false },
+                        modifier = Modifier.weight(1f).fillMaxHeight().defaultMinSize(minHeight = 48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.cancelar),
+                            color = primaryColor,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            mostrarDialogoLogout = false
+                            onLogout()
+                        },
+                        modifier = Modifier.weight(1f).fillMaxHeight().defaultMinSize(minHeight = 48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.salir_confirmar),
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
-            }
+            },
+            dismissButton = null
         )
     }
 

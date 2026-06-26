@@ -538,7 +538,7 @@ fun ReportsPage(
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape    = RoundedCornerShape(16.dp),
-                    colors   = ButtonDefaults.buttonColors(containerColor = DeepRed),
+                    colors   = ButtonDefaults.buttonColors(containerColor = DeepRed, contentColor = Color.White),
                     enabled  = tipoSeleccionadoId != null &&
                             (tipoSeleccionadoId != "otro" || tipoPersonalizado.isNotBlank()) &&
                             !cargando
@@ -590,26 +590,47 @@ fun ReportsPage(
                 )
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        mostrarDialogoGps = false
-                        context.startActivity(
-                            android.content.Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE65100))
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(Icons.Default.Settings, null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Activar GPS")
+                    OutlinedButton(
+                        onClick = {
+                            mostrarDialogoGps = false
+                            ubicacionTemporal = ""
+                            editandoUbicacion = true
+                        },
+                        modifier = Modifier.weight(1f).fillMaxHeight().defaultMinSize(minHeight = 48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = "Ingresar manualmente",
+                            color = primaryColor,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            mostrarDialogoGps = false
+                            context.startActivity(
+                                android.content.Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                        },
+                        modifier = Modifier.weight(1f).fillMaxHeight().defaultMinSize(minHeight = 48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE65100), contentColor = Color.White),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) {
+                        Icon(Icons.Default.Settings, null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Activar GPS",
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    mostrarDialogoGps = false
-                    ubicacionTemporal = ""
-                    editandoUbicacion = true
-                }) { Text("Ingresar manualmente") }
-            }
+            dismissButton = null
         )
     }
 
@@ -631,34 +652,55 @@ fun ReportsPage(
                 )
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        ubicacion = ubicacionTemporal
-                        editandoUbicacion = false
-                        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                            try {
-                                val geocoder = Geocoder(context, Locale("es", "PE"))
-                                val resultados = geocoder.getFromLocationName(ubicacionTemporal.trim(), 1)
-                                if (!resultados.isNullOrEmpty()) {
-                                    val nuevoPunto = GeoPoint(resultados[0].latitude, resultados[0].longitude)
-                                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                        geoPoint = nuevoPunto
-                                        mapView?.controller?.animateTo(nuevoPunto)
-                                        mapView?.controller?.setZoom(17.5)
-                                        mapView?.invalidate()
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { editandoUbicacion = false },
+                        modifier = Modifier.weight(1f).fillMaxHeight().defaultMinSize(minHeight = 48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.cancelar),
+                            color = primaryColor,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            ubicacion = ubicacionTemporal
+                            editandoUbicacion = false
+                            scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                try {
+                                    val geocoder = Geocoder(context, Locale("es", "PE"))
+                                    val resultados = geocoder.getFromLocationName(ubicacionTemporal.trim(), 1)
+                                    if (!resultados.isNullOrEmpty()) {
+                                        val nuevoPunto = GeoPoint(resultados[0].latitude, resultados[0].longitude)
+                                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                            geoPoint = nuevoPunto
+                                            mapView?.controller?.animateTo(nuevoPunto)
+                                            mapView?.controller?.setZoom(17.5)
+                                            mapView?.invalidate()
+                                        }
                                     }
-                                }
-                            } catch (e: Exception) { }
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
-                ) { Text(stringResource(R.string.confirmar)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { editandoUbicacion = false }) {
-                    Text(stringResource(R.string.cancelar))
+                                } catch (e: Exception) { }
+                            }
+                        },
+                        modifier = Modifier.weight(1f).fillMaxHeight().defaultMinSize(minHeight = 48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.confirmar),
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
-            }
+            },
+            dismissButton = null
         )
     }
 
@@ -679,16 +721,37 @@ fun ReportsPage(
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = { mostrarConfirmacion = false; guardarReporte() },
-                    colors  = ButtonDefaults.buttonColors(containerColor = DeepRed)
-                ) { Text(stringResource(R.string.confirmar_enviar)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { mostrarConfirmacion = false }) {
-                    Text(stringResource(R.string.cancelar))
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { mostrarConfirmacion = false },
+                        modifier = Modifier.weight(1f).fillMaxHeight().defaultMinSize(minHeight = 48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.cancelar),
+                            color = primaryColor,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    Button(
+                        onClick = { mostrarConfirmacion = false; guardarReporte() },
+                        modifier = Modifier.weight(1f).fillMaxHeight().defaultMinSize(minHeight = 48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors  = ButtonDefaults.buttonColors(containerColor = DeepRed, contentColor = Color.White),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.confirmar_enviar),
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
-            }
+            },
+            dismissButton = null
         )
     }
 }
@@ -734,12 +797,37 @@ fun TopHeader(onLogout: () -> Unit, onNavigateToSettings: () -> Unit, onNavigate
             title = { Text("Cerrar sesión", fontWeight = FontWeight.Bold, color = primaryColor) },
             text  = { Text("¿Deseas salir de tu cuenta?") },
             confirmButton = {
-                Button(onClick = { mostrarDialogo = false; onLogout() },
-                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor)) { Text("Salir") }
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { mostrarDialogo = false },
+                        modifier = Modifier.weight(1f).fillMaxHeight().defaultMinSize(minHeight = 48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = "Cancelar",
+                            color = primaryColor,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    Button(
+                        onClick = { mostrarDialogo = false; onLogout() },
+                        modifier = Modifier.weight(1f).fillMaxHeight().defaultMinSize(minHeight = 48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = "Salir",
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
             },
-            dismissButton = {
-                OutlinedButton(onClick = { mostrarDialogo = false }) { Text("Cancelar") }
-            }
+            dismissButton = null
         )
     }
 
