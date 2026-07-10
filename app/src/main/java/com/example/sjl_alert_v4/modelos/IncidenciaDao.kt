@@ -24,6 +24,9 @@ interface IncidenciaDao {
     @Query("UPDATE incidencias SET estado = :estado WHERE id = :id")
     suspend fun actualizarEstado(id: String, estado: String)
 
+    @Query("SELECT COUNT(*) FROM incidencias WHERE id = :id")
+    suspend fun existePorId(id: String): Int
+
     // ── Sincronización con Azure ──────────────────────────────────────────
     @Query("SELECT * FROM incidencias WHERE sincronizado = 0")
     suspend fun obtenerNoSincronizadas(): List<IncidenciaEntity>

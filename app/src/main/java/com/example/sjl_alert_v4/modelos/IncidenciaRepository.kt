@@ -67,7 +67,16 @@ class IncidenciaRepository(private val dao: IncidenciaDao) {
             val response = api.obtenerPorUsuario(usuarioId)
             if (response.isSuccessful) {
                 response.body()?.forEach { dto ->
-                    dao.insertar(dto.toEntity())
+                    android.util.Log.d("SYNC", "ID: ${dto.id} ESTADO: ${dto.estado}")
+                    val existe = dao.existePorId(dto.id)
+                    android.util.Log.d("SYNC", "EXISTE: $existe")
+                    if (existe > 0) {
+                        dao.actualizarEstado(dto.id, dto.estado)
+                        android.util.Log.d("SYNC", "ESTADO ACTUALIZADO: ${dto.estado}")
+                    } else {
+                        dao.insertar(dto.toEntity())
+                        android.util.Log.d("SYNC", "INSERTADO NUEVO")
+                    }
                 }
                 ResultadoApi.Exito("Sincronizado con Azure")
             } else {

@@ -308,7 +308,7 @@ function serializarIncidencia(row) {
     longitud:           row.longitud,
     evidencias:         row.evidencias,
     imagenUri:          row.imagenUri,
-    fecha:              millisToISO(row.fecha),              // ✅ ISO 8601
+    fecha:              row.fecha ? Number(row.fecha) : 0,             // ✅ ISO 8601
     estado:             row.estado,
     usuarioId:          row.usuarioId,
     fechaActualizacion: millisToISO(row.fechaActualizacion) // ✅ ISO 8601 (null si 0)

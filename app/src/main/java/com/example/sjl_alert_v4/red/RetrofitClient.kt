@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
 
     private const val BASE_URL =
-        "https://alertasjl-nuevo.azurewebsites.net/"
+        "https://alertasjl-nuevo-bdbhfsgha8edctaj.canadacentral-01.azurewebsites.net/"
 
     private val logger = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY

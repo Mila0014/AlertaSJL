@@ -45,9 +45,10 @@ fun MisReportesPage(
     val prefManager = remember { PreferenceManager(context) }
     val usuarioId = remember { prefManager.getSesionUsuarioId() }
     val nombre = remember { prefManager.getSesionNombre() }
+    var refreshKey by remember { mutableStateOf(0) }
 
-    // ── Sincronizar con Supabase al abrir ────────────────────────────────────
-    LaunchedEffect(usuarioId) {
+    // ── Sincronizar con Azure al abrir y al refrescar ─────────────────────
+    LaunchedEffect(usuarioId, refreshKey) {
         repo.sincronizarConAzure(usuarioId)
     }
 
@@ -94,15 +95,30 @@ fun MisReportesPage(
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            Text(
-                text = stringResource(R.string.hola_vecino, nombre.ifBlank { stringResource(R.string.usuario) }),
-                fontSize = 22.sp, fontWeight = FontWeight.Bold, color = primaryColor
-            )
-            Text(
-                text = stringResource(R.string.tus_reportes),
-                fontSize = 14.sp, color = onSurfaceVariantColor,
-                modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = stringResource(R.string.hola_vecino, nombre.ifBlank { stringResource(R.string.usuario) }),
+                        fontSize = 22.sp, fontWeight = FontWeight.Bold, color = primaryColor
+                    )
+                    Text(
+                        text = stringResource(R.string.tus_reportes),
+                        fontSize = 14.sp, color = onSurfaceVariantColor,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
+                    )
+                }
+                IconButton(onClick = { refreshKey++ }) {
+                    Icon(
+                        Icons.Default.Refresh,
+                        contentDescription = "Actualizar",
+                        tint = primaryColor
+                    )
+                }
+            }
 
             if (reportes.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
