@@ -26,6 +26,8 @@ import com.example.sjl_alert_v4.modelos.IncidenciaEntity
 import com.example.sjl_alert_v4.modelos.IncidenciaRepository
 import com.example.sjl_alert_v4.sharedPrefs.PreferenceManager
 import com.example.sjl_alert_v4.ui.theme.*
+import com.example.sjl_alert_v4.utilidades.SuccessToast
+import com.example.sjl_alert_v4.utilidades.ToastData
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -46,6 +48,7 @@ fun MisReportesPage(
     val usuarioId = remember { prefManager.getSesionUsuarioId() }
     val nombre = remember { prefManager.getSesionNombre() }
     var refreshKey by remember { mutableStateOf(0) }
+    var toastUpdate by remember { mutableStateOf<ToastData?>(null) }
 
     // ── Sincronizar con Azure al abrir y al refrescar ─────────────────────
     LaunchedEffect(usuarioId, refreshKey) {
@@ -87,79 +90,104 @@ fun MisReportesPage(
         },
         containerColor = backgroundColor
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 20.dp)
-        ) {
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 20.dp)
             ) {
-                Column {
-                    Text(
-                        text = stringResource(R.string.hola_vecino, nombre.ifBlank { stringResource(R.string.usuario) }),
-                        fontSize = 22.sp, fontWeight = FontWeight.Bold, color = primaryColor
-                    )
-                    Text(
-                        text = stringResource(R.string.tus_reportes),
-                        fontSize = 14.sp, color = onSurfaceVariantColor,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
-                    )
+                Spacer(modifier = Modifier.height(20.dp))
+
+                val strPaginaActualizada = stringResource(R.string.pagina_actualizada)
+                val strSincronizacionExitosa = stringResource(R.string.sincronizacion_exitosa)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.hola_vecino, nombre.ifBlank { stringResource(R.string.usuario) }),
+                            fontSize = 22.sp, fontWeight = FontWeight.Bold, color = primaryColor
+                        )
+                        Text(
+                            text = stringResource(R.string.tus_reportes),
+                            fontSize = 14.sp, color = onSurfaceVariantColor,
+                            modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
+                        )
+                    }
+                    IconButton(onClick = {
+                        refreshKey++
+                        toastUpdate = ToastData(
+                            icon = Icons.Default.CheckCircle,
+                            iconBg = Color(0xFFE8F5E9),
+                            iconTint = Color(0xFF2E7D32),
+                            title = strPaginaActualizada,
+                            message = strSincronizacionExitosa
+                        )
+                    }) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "Actualizar",
+                            tint = primaryColor
+                        )
+                    }
                 }
-                IconButton(onClick = { refreshKey++ }) {
-                    Icon(
-                        Icons.Default.Refresh,
-                        contentDescription = "Actualizar",
-                        tint = primaryColor
-                    )
+
+                if (reportes.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Assignment, contentDescription = null,
+                                modifier = Modifier.size(72.dp),
+                                tint = onSurfaceVariantColor.copy(alpha = 0.4f)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = stringResource(R.string.sin_reportes),
+                                fontSize = 18.sp, fontWeight = FontWeight.SemiBold,
+                                color = onSurfaceVariantColor
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = stringResource(R.string.ir_a_reportes),
+                                fontSize = 14.sp, color = onSurfaceVariantColor.copy(alpha = 0.7f)
+                            )
+                            Spacer(modifier = Modifier.height(20.dp))
+                            Button(
+                                onClick = onNuevoReporte,
+                                colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(R.string.crear_reporte), fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        items(reportes) { reporte ->
+                            ReporteCard(
+                                reporte = reporte
+                            ) { onVerDetalles(reporte.id) }
+                        }
+                        item { Spacer(modifier = Modifier.height(80.dp)) }
+                    }
                 }
             }
 
-            if (reportes.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Assignment, contentDescription = null,
-                            modifier = Modifier.size(72.dp),
-                            tint = onSurfaceVariantColor.copy(alpha = 0.4f)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = stringResource(R.string.sin_reportes),
-                            fontSize = 18.sp, fontWeight = FontWeight.SemiBold,
-                            color = onSurfaceVariantColor
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = stringResource(R.string.ir_a_reportes),
-                            fontSize = 14.sp, color = onSurfaceVariantColor.copy(alpha = 0.7f)
-                        )
-                        Spacer(modifier = Modifier.height(20.dp))
-                        Button(
-                            onClick = onNuevoReporte,
-                            colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.crear_reporte), fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(reportes) { reporte ->
-                        ReporteCard(
-                            reporte = reporte
-                        ) { onVerDetalles(reporte.id) }
-                    }
-                    item { Spacer(modifier = Modifier.height(80.dp)) }
-                }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = paddingValues.calculateTopPadding())
+            ) {
+                SuccessToast(
+                    toastData = toastUpdate,
+                    onDismiss = { toastUpdate = null }
+                )
             }
         }
     }
@@ -206,7 +234,10 @@ fun ReporteCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(
                         modifier = Modifier
                             .size(40.dp)
@@ -224,6 +255,7 @@ fun ReporteCard(
                         Text(fechaStr, fontSize = 11.sp, color = onSurfaceVariantColor)
                     }
                 }
+                Spacer(modifier = Modifier.width(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(shape = RoundedCornerShape(8.dp), color = estadoColor.copy(alpha = 0.15f)) {
                         Text(

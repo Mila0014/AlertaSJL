@@ -164,7 +164,10 @@ fun ReporteDetallesPage(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Icon(Icons.Default.Report, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
@@ -177,6 +180,7 @@ fun ReporteDetallesPage(
                                 color = MaterialTheme.colorScheme.onErrorContainer)
                         }
                     }
+                    Spacer(modifier = Modifier.width(8.dp))
                     Surface(shape = RoundedCornerShape(8.dp), color = estadoColor.copy(alpha = 0.2f)) {
                         Text(
                             estadoLabel,

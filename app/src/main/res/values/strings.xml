@@ -79,6 +79,10 @@
     <string name="contacto_comisaria_se_desc">Santa Elizabeth</string>
     <string name="contacto_comisaria_zarate_nombre">Comisaría de Zárate</string>
     <string name="contacto_comisaria_canto_rey_nombre">Comisaría de Canto Rey</string>
+    <string name="contacto_comisaria_caja_agua_nombre">Comisaría de Caja de Agua</string>
+    <string name="contacto_comisaria_la_huayrona_nombre">Comisaría de La Huayrona</string>
+    <string name="contacto_comisaria_mariscal_caceres_nombre">Comisaría de Mariscal Cáceres</string>
+    <string name="contacto_comisaria_diez_octubre_nombre">Comisaría de 10 de Octubre</string>
     <string name="contacto_radio_exitosa_nombre">Radio Exitosa</string>
     <string name="contacto_radio_exitosa_desc">Denuncias y noticias</string>
     <string name="contacto_rpp_nombre">RPP</string>
@@ -114,10 +118,10 @@
     <string name="tomar_foto">Tomar Foto</string>
     <string name="archivos_adjuntos">%d archivo(s) adjunto(s)</string>
     <string name="quitar_todo">Quitar todo</string>
-    <string name="comentario_adicional">Comentario adicional</string>
+    <string name="comentario_adicional">Comentario</string>
     <string name="comentario_placeholder">Describe a qué se debe el reporte...</string>
     <string name="enviar_alerta">Enviar Alerta</string>
-    <string name="enviar_alerta_aviso">Mantén presionado para confirmar. Los servicios\nde emergencia locales serán notificados de inmediato.</string>
+    <string name="enviar_alerta_aviso">Presiona el boton para confirmar. Los servicios\nde emergencia locales serán notificados de inmediato.</string>
     <string name="modificar_ubicacion_titulo">Modificar Ubicación</string>
     <string name="direccion">Dirección</string>
     <string name="confirmar">Confirmar</string>
@@ -138,6 +142,8 @@
     <string name="error_guardar">Error al guardar: %s</string>
     <string name="escribe_descripcion">Escribe una descripción</string>
     <string name="obteniendo_ubicacion">Obteniendo ubicación...</string>
+    <string name="pagina_actualizada">Página actualizada con éxito</string>
+    <string name="sincronizacion_exitosa">Los reportes se han sincronizado con éxito.</string>
     <string name="inicio">Inicio</string>
     <string name="reportes">Reportes</string>
     <string name="directorio">Directorio</string>

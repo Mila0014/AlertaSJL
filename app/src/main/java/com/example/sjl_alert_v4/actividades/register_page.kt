@@ -5,6 +5,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -98,12 +100,14 @@ class DateVisualTransformation : VisualTransformation {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun RegisterPreview() {
     SJL_Alert_v4Theme { RegisterPage() }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterPage(
     onRegisterSuccess: () -> Unit = {},
@@ -116,6 +120,17 @@ fun RegisterPage(
     var apellido            by remember { mutableStateOf("") }
     var dni                 by remember { mutableStateOf("") }
     var fechaNacimiento     by remember { mutableStateOf("") }
+    
+    val datePickerState = rememberDatePickerState()
+    var showDatePicker  by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    LaunchedEffect(isPressed) {
+        if (isPressed) {
+            showDatePicker = true
+        }
+    }
     var correo              by remember { mutableStateOf("") }
     var telefono            by remember { mutableStateOf("") }
     var direccion           by remember { mutableStateOf("") }
@@ -312,10 +327,9 @@ fun RegisterPage(
                     ) {
                         OutlinedTextField(
                             value         = fechaNacimiento,
-                            onValueChange = { input ->
-                                val soloDigitos = input.filter { it.isDigit() }.take(8)
-                                fechaNacimiento = soloDigitos
-                            },
+                            onValueChange = { },
+                            readOnly      = true,
+                            interactionSource = interactionSource,
                             visualTransformation = DateVisualTransformation(),
                             modifier      = Modifier.weight(1f),
                             placeholder   = { Text("DD/MM/AAAA", color = outlineColor) },
@@ -323,7 +337,6 @@ fun RegisterPage(
                                 Icon(Icons.Default.CalendarToday, null, tint = onSurfaceVariantColor)
                             },
                             singleLine      = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             shape           = RoundedCornerShape(12.dp),
                             colors          = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor      = primaryColor,
@@ -807,6 +820,35 @@ fun RegisterPage(
                     if (errorMessage == "terminos") errorMessage = null
                 }
             )
+        }
+
+        if (showDatePicker) {
+            DatePickerDialog(
+                onDismissRequest = { showDatePicker = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            val cal = java.util.Calendar.getInstance(
+                                java.util.TimeZone.getTimeZone("UTC")
+                            ).apply { timeInMillis = millis }
+                            val dia = cal.get(java.util.Calendar.DAY_OF_MONTH).toString().padStart(2, '0')
+                            val mes = (cal.get(java.util.Calendar.MONTH) + 1).toString().padStart(2, '0')
+                            val anio = cal.get(java.util.Calendar.YEAR).toString()
+                            fechaNacimiento = "$dia$mes$anio"
+                        }
+                        showDatePicker = false
+                    }) {
+                        Text("Aceptar")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDatePicker = false }) {
+                        Text("Cancelar")
+                    }
+                }
+            ) {
+                DatePicker(state = datePickerState)
+            }
         }
     }
 }

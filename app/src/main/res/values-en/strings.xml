@@ -79,6 +79,10 @@
     <string name="contacto_comisaria_se_desc">SANTA ELIZABETH</string>
     <string name="contacto_comisaria_zarate_nombre">Zárate Police Station</string>
     <string name="contacto_comisaria_canto_rey_nombre">Canto Rey Police Station</string>
+    <string name="contacto_comisaria_caja_agua_nombre">Caja de Agua Police Station</string>
+    <string name="contacto_comisaria_la_huayrona_nombre">La Huayrona Police Station</string>
+    <string name="contacto_comisaria_mariscal_caceres_nombre">Mariscal Cáceres Police Station</string>
+    <string name="contacto_comisaria_diez_octubre_nombre">10 de Octubre Police Station</string>
     <string name="contacto_radio_exitosa_nombre">Radio Exitosa</string>
     <string name="contacto_radio_exitosa_desc">Reports and news</string>
     <string name="contacto_rpp_nombre">RPP</string>
@@ -114,7 +118,7 @@
     <string name="tomar_foto">Take Photo</string>
     <string name="archivos_adjuntos">%d file(s) attached</string>
     <string name="quitar_todo">Remove all</string>
-    <string name="comentario_adicional">Additional comment</string>
+    <string name="comentario_adicional"> Comment</string>
     <string name="comentario_placeholder">Describe what the report is about...</string>
     <string name="enviar_alerta">Send Alert</string>
     <string name="enviar_alerta_aviso">Hold to confirm. Local emergency\nservices will be notified immediately.</string>
@@ -138,6 +142,8 @@
     <string name="error_guardar">Error saving: %s</string>
     <string name="escribe_descripcion">Write a description</string>
     <string name="obteniendo_ubicacion">Getting location...</string>
+    <string name="pagina_actualizada">Page updated successfully</string>
+    <string name="sincronizacion_exitosa">Reports have been successfully synchronized.</string>
     <string name="inicio">Home</string>
     <string name="reportes">Reports</string>
     <string name="directorio">Directory</string>

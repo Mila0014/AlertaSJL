@@ -119,6 +119,30 @@ fun DirectorioPage(
             descripcion = "",
             numero = "(01) 388-3450",
             icon = Icons.Default.Policy
+        ),
+        Contacto(
+            nombre = stringResource(R.string.contacto_comisaria_caja_agua_nombre),
+            descripcion = "",
+            numero = "(01) 459-0019",
+            icon = Icons.Default.Policy
+        ),
+        Contacto(
+            nombre = stringResource(R.string.contacto_comisaria_la_huayrona_nombre),
+            descripcion = "",
+            numero = "(01) 389-0120",
+            icon = Icons.Default.Policy
+        ),
+        Contacto(
+            nombre = stringResource(R.string.contacto_comisaria_mariscal_caceres_nombre),
+            descripcion = "",
+            numero = "(01) 392-5643",
+            icon = Icons.Default.Policy
+        ),
+        Contacto(
+            nombre = stringResource(R.string.contacto_comisaria_diez_octubre_nombre),
+            descripcion = "",
+            numero = "(01) 392-7476",
+            icon = Icons.Default.Policy
         )
     )
 

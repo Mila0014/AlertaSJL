@@ -205,7 +205,16 @@ fun AjustesPrefs(
                 idiomaActual = nuevoIdioma
                 preferenceManager.setLanguage(nuevoIdioma)
                 mostrarDialogoIdioma = false
-                onThemeChanged()
+                
+                // Recrear la actividad para aplicar el cambio de idioma inmediatamente
+                var curContext = context
+                while (curContext is android.content.ContextWrapper) {
+                    if (curContext is android.app.Activity) {
+                        curContext.recreate()
+                        break
+                    }
+                    curContext = curContext.baseContext
+                }
             },
             onDismiss = { mostrarDialogoIdioma = false }
         )
@@ -537,12 +546,12 @@ fun AjustesPrefs(
                     }
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = surfaceContainerHighColor)
-                SettingsItem(
+                /*SettingsItem(
                     icon = Icons.Default.History,
                     title = stringResource(R.string.historial_reportes),
                     subtitle = stringResource(R.string.ver_incidencias),
                     onClick = { }
-                )
+                )*/
             }
 
             // ── SECCIÓN: Ayuda ────────────────────────────────────────────
