@@ -847,7 +847,7 @@ fun TopHeader(onLogout: () -> Unit, onNavigateToSettings: () -> Unit, onNavigate
                 fontSize = 20.sp, color = primaryColor)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.NotificationsNone, null, tint = onSurfaceVariantColor)
+            /*Icon(Icons.Default.NotificationsNone, null, tint = onSurfaceVariantColor)*/
             Spacer(modifier = Modifier.width(16.dp))
             IconButton(onClick = { mostrarDialogo = true }) {
                 Icon(Icons.Default.Logout, stringResource(R.string.logout), tint = onSurfaceVariantColor)

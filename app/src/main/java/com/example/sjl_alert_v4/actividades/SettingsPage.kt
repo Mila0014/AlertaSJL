@@ -522,7 +522,7 @@ fun AjustesPrefs(
                         preferenceManager.setEmailNotificationEnabled(it)
                     }
                 )
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = surfaceContainerHighColor)
+                /*HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = surfaceContainerHighColor)
                 SettingsSwitchItem(
                     icon = Icons.Default.Security,
                     title = stringResource(R.string.alertas_comunitarias),
@@ -531,7 +531,7 @@ fun AjustesPrefs(
                         communityAlerts = it
                         preferenceManager.setCommunityAlertsEnabled(it)
                     }
-                )
+                )*/
             }
 
             // ── SECCIÓN: Seguridad y Privacidad ───────────────────────────
